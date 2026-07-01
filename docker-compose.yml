@@ -1,0 +1,37 @@
+version: "3.4"
+
+services:
+    #  database:
+    #    name: database
+    #    image: postgres:15
+    #    environment:
+    #       POSTGRES_USER: postgres
+    #       POSTGRES_PASSWORD: hello
+    #       restart: always
+    #       ports:
+    #       - "5432:5432"  
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+    restart: unless-stopped
+    ports:
+      # AMQP protocol port for application connections
+      - "5672:5672"
+      # HTTP Management UI and API port
+      - "15672:15672"
+    environment:
+      # Define administrative credentials
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: SecurePassword123
+    volumes:
+      # Persist queue data and configurations
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      # Ensure RabbitMQ is fully operational before dependent apps connect
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  rabbitmq_data:
+
