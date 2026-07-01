@@ -17,6 +17,7 @@ model user {
   userStat userStat[]
   submissions submissions[]
   leaderboard leaderboard[]
+  contribution contribution[]
 }
 
 model userStat{
@@ -44,6 +45,7 @@ model problems {
   createdAt DateTime @default(now())
   testCases testCase[]
   submissions submissions[]
+  contribution contribution[]
 }
 
 
@@ -94,6 +96,17 @@ model submissionStats {
   memoryUsage   Float
   createdAt DateTime @default(now())
   submissions submissions @relation(fields: [submissionId], references: [id])
+}
+
+model contribution{
+  id      String   @id @default(cuid())
+  userId   String
+  problemId   String
+  createdAt DateTime @default(now())
+
+  users user @relation(fields: [userId], references: [id])
+  problems problems @relation(fields: [problemId], references: [id])
+  @@index([userId,createdAt]) 
 }
 
 model leaderboard {

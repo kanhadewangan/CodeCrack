@@ -72,6 +72,12 @@ router.post("/submission", async (req, res) => {
                 userId: true
             }
         })
+        await prisma.contribution.create({
+            data: {
+                userId: (req as any).user.id,
+                problemId: problemId,
+            },
+        })
         console.log("submission", submission)
        const message = {
         submissionId: submission.id,

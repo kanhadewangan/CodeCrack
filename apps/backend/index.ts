@@ -3,6 +3,9 @@ import  route from "./auth/index.ts";
 import problemsRoute from "./problems-service/index.ts";
 import {authMiddleware} from "./auth/middleware.ts";
 import submissionsRoute from "./code-submisson/index.ts";
+import { prisma } from "@repo/db";
+import streaksRoute from "./code-submisson/streaks.ts";
+
 const app = express();
 
 app.use(express.json());
@@ -18,13 +21,9 @@ app.use((req, res, next) => {
   next();
 });
 
-import { prisma } from "@repo/db";
-
 app.use("/auth", route);
 app.use("/problems", problemsRoute);
-app.use("/protected", authMiddleware, (req, res) => {
-  res.status(200).json({ message: "You have accessed a protected route!" });
-});
+app.use("/streaks", authMiddleware, streaksRoute);
 app.use("/api", authMiddleware, submissionsRoute);
 
 app.get("/leaderboard", async (req, res) => {

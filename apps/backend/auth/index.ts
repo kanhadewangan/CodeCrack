@@ -30,20 +30,20 @@ route.post("/login", async (req, res) => {
     if(!email || !password){
         return res.status(400).json({ message: "Email and password are required" });
     }
-    const users = await prisma.user.findMany({
+    const users = await prisma.user.findFirst({
         where:{
             email,
         }
     })
-    if(users.length === 0){
+    if(!users){
         return res.status(401).json({ message: "Invalid email or password" });
     }
-    const isMatch = await brcypt.compare(password, users[0]?.password as string);
+    const isMatch = await brcypt.compare(password, users?.password as string);
     if(!isMatch){
         return res.status(401).json({ message: "Invalid email or password" });
     }
     const token = jwt.sign({
-        id: users[0]?.id
+        id: users?.id
     }, process.env.JWT_SECRET as string, { expiresIn: "1d" });
     res.status(200).json({ token });
 
@@ -74,6 +74,21 @@ route.get("/me", async (req, res) => {
         return res.status(401).json({ message: "Unauthorized" });
     }
 })
+
+
+// route.get('/contribution',async(req,res)=>{
+
+//     const authHeader = req.headers.authorization;
+//     if(!authHeader || !authHeader.startsWith("Bearer ")){
+//         return res.status(401).json({ message: "Unauthorized" });
+//     }
+//     const token = authHeader.split(" ")[1];
+
+//     const contributions = await prisma.
+
+
+
+// })
 
 
 

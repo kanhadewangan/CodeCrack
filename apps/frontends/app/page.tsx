@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
-import { problemsApi, submissionsApi } from "../lib/api";
+import { problemsApi, streaksApi, submissionsApi } from "../lib/api";
 
 interface Problem {
   id: string;
@@ -25,10 +25,54 @@ interface Submission {
   };
 }
 
+type ContributionMap = Record<string, number>;
+
+function formatDateKeyLocal(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function formatDateKeyUTC(date: Date): string {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function normalizeContributionMap(payload: any): ContributionMap {
+  if (!payload) return {};
+
+  const source = payload.contributions && typeof payload.contributions === "object"
+    ? payload.contributions
+    : payload;
+
+  if (Array.isArray(source)) {
+    return source.reduce((acc: ContributionMap, item: any) => {
+      const key = typeof item?.date === "string" ? item.date.slice(0, 10) : null;
+      const value = Number(item?.count || 0);
+      if (key) acc[key] = Number.isFinite(value) ? value : 0;
+      return acc;
+    }, {});
+  }
+
+  if (typeof source !== "object") return {};
+
+  return Object.entries(source).reduce((acc: ContributionMap, [key, value]) => {
+    const safeKey = key.slice(0, 10);
+    const safeValue = Number(value || 0);
+    acc[safeKey] = Number.isFinite(safeValue) ? safeValue : 0;
+    return acc;
+  }, {});
+}
+
 export default function Home() {
   const { user } = useAuth();
   const [featuredProblems, setFeaturedProblems] = useState<Problem[]>([]);
   const [recentSubmissions, setRecentSubmissions] = useState<Submission[]>([]);
+  const [streakCount, setStreakCount] = useState(0);
+  const [contributions, setContributions] = useState<ContributionMap>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,12 +84,30 @@ export default function Home() {
 
         if (user) {
           try {
-            const subs = await submissionsApi.list();
+            const [subsResult, streakResult, contributionResult] = await Promise.allSettled([
+              submissionsApi.list(),
+              streaksApi.get(),
+              streaksApi.getContributions(),
+            ]);
+
+            if (streakResult.status === "fulfilled") {
+              setStreakCount(streakResult.value?.streaks || 0);
+            } else {
+              setStreakCount(0);
+            }
+
+            if (contributionResult.status === "fulfilled") {
+              setContributions(normalizeContributionMap(contributionResult.value));
+            } else {
+              setContributions({});
+            }
+
+            const subs = subsResult.status === "fulfilled" ? subsResult.value : [];
             // Fetch problem relations manually if needed, but since we retrieve user submissions:
             // submissions endpoint maps: id, problemId, code, language, status.
             // Let's resolve the problem titles using the fetched problems list.
             const enhancedSubs = subs.slice(0, 5).map((sub: any) => {
-              const matchingProblem = probs.find((p) => p.id === sub.problemId);
+              const matchingProblem = probs.find((p:any) => p.id === sub.problemId);
               return {
                 ...sub,
                 problems: matchingProblem ? {
@@ -57,7 +119,12 @@ export default function Home() {
             setRecentSubmissions(enhancedSubs);
           } catch (err) {
             console.error("Could not load submissions for dashboard", err);
+            setStreakCount(0);
+            setContributions({});
           }
+        } else {
+          setStreakCount(0);
+          setContributions({});
         }
       } catch (err) {
         console.error("Failed to load dashboard bank problems", err);
@@ -74,6 +141,60 @@ export default function Home() {
   const ratingVal = user?.userStat?.[0]?.rating || 200;
   const totalAttempts = user?.userStat?.[0]?.totalSubmissions || 0;
   const accuracy = totalAttempts > 0 ? Math.round((solvedCount / totalAttempts) * 100) : 0;
+  const totalContributions = Object.values(contributions).reduce((sum, count) => sum + count, 0);
+
+  const endDate = new Date();
+  endDate.setHours(0, 0, 0, 0);
+
+  const rangeStart = new Date(endDate);
+  rangeStart.setDate(endDate.getDate() - 364);
+
+  const gridStart = new Date(rangeStart);
+  gridStart.setDate(rangeStart.getDate() - rangeStart.getDay());
+
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  const totalGridDays = Math.floor((endDate.getTime() - gridStart.getTime()) / oneDayMs) + 1;
+  const totalWeeks = Math.ceil(totalGridDays / 7);
+
+  const weeks = Array.from({ length: totalWeeks }, (_, weekIndex) =>
+    Array.from({ length: 7 }, (_, dayOfWeek) => {
+      const date = new Date(gridStart);
+      date.setDate(gridStart.getDate() + weekIndex * 7 + dayOfWeek);
+      const localKey = formatDateKeyLocal(date);
+      const utcKey = formatDateKeyUTC(date);
+      const inRange = date >= rangeStart && date <= endDate;
+      const count = inRange ? (contributions[utcKey] ?? contributions[localKey] ?? 0) : 0;
+      return {
+        date,
+        key: contributions[utcKey] !== undefined ? utcKey : localKey,
+        count,
+        inRange,
+      };
+    })
+  );
+
+  const monthLabels = weeks
+    .map((week, index) => {
+      const firstInRange = week.find((day) => day.inRange);
+      if (!firstInRange) return null;
+
+      const hasMonthStart = week.some((day) => day.inRange && day.date.getDate() === 1);
+      if (index !== 0 && !hasMonthStart) return null;
+
+      return {
+        index,
+        label: firstInRange.date.toLocaleString("en-US", { month: "short" }),
+      };
+    })
+    .filter(Boolean) as Array<{ index: number; label: string }>;
+
+  const getContributionColor = (count: number) => {
+    if (count === 0) return "#1a2035";
+    if (count <= 1) return "#1f8f4e";
+    if (count <= 3) return "#26a641";
+    if (count <= 6) return "#39d353";
+    return "#56f27b";
+  };
 
   return (
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
@@ -170,6 +291,116 @@ export default function Home() {
               average success rate per run
             </span>
           </div>
+
+          <div className="glass-panel" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "600", textTransform: "uppercase" }}>
+              Current Streak
+            </span>
+            <span style={{ fontSize: "2.25rem", fontWeight: "800", color: "#F59E0B" }}>
+              {streakCount} <span style={{ fontSize: "1rem", fontWeight: "normal", color: "var(--text-muted)" }}>days</span>
+            </span>
+            <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+              consecutive active coding days
+            </span>
+          </div>
+        </div>
+      )}
+
+      {user && (
+        <div
+          className="glass-panel"
+          style={{
+            padding: "1.5rem",
+            borderRadius: "14px",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", gap: "0.75rem", flexWrap: "wrap" }}>
+            <h2 style={{ fontSize: "1.1rem", fontWeight: 700, margin: 0 }}>
+              {totalContributions} contributions in the last year
+            </h2>
+            <span style={{ color: "var(--text-muted)", fontSize: "0.82rem" }}>
+              Contribution settings ▾
+            </span>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: "10px",
+              padding: "0.9rem",
+              overflowX: "auto",
+            }}
+          >
+            <div style={{ minWidth: "820px" }}>
+              <div style={{ display: "flex", alignItems: "center", marginBottom: "0.5rem" }}>
+                <div style={{ width: "34px" }} />
+                <div style={{ display: "grid", gridTemplateColumns: `repeat(${totalWeeks}, 12px)`, gap: "3px" }}>
+                  {Array.from({ length: totalWeeks }).map((_, idx) => {
+                    const monthLabel = monthLabels.find((m) => m.index === idx)?.label;
+                    return (
+                      <div key={`month-${idx}`} style={{ fontSize: "0.7rem", color: "var(--text-muted)", minHeight: "14px" }}>
+                        {monthLabel || ""}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "0.4rem" }}>
+                <div style={{ width: "34px", display: "grid", gridTemplateRows: "repeat(7, 12px)", gap: "3px", fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                  <div />
+                  <div style={{ display: "flex", alignItems: "center" }}>Mon</div>
+                  <div />
+                  <div style={{ display: "flex", alignItems: "center" }}>Wed</div>
+                  <div />
+                  <div style={{ display: "flex", alignItems: "center" }}>Fri</div>
+                  <div />
+                </div>
+
+                <div style={{ display: "flex", gap: "3px" }}>
+                  {weeks.map((week, weekIndex) => (
+                    <div key={`week-${weekIndex}`} style={{ display: "grid", gridTemplateRows: "repeat(7, 12px)", gap: "3px" }}>
+                      {week.map((day, dayIndex) => (
+                      <div
+                        key={`${day.key}-${weekIndex}-${dayIndex}`}
+                        title={`${day.key}: ${day.count} contribution${day.count === 1 ? "" : "s"}`}
+                        style={{
+                          width: "12px",
+                          height: "12px",
+                          borderRadius: "2px",
+                          backgroundColor: getContributionColor(day.count),
+                          opacity: day.inRange ? 1 : 0.35,
+                        }}
+                      />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.8rem", gap: "0.75rem", flexWrap: "wrap" }}>
+            <span style={{ color: "var(--text-muted)", fontSize: "0.78rem" }}>
+              Learn how we count contributions
+            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+              <span>Less</span>
+              {[0, 1, 2, 3, 4].map((level) => (
+                <div
+                  key={`legend-${level}`}
+                  style={{
+                    width: "11px",
+                    height: "11px",
+                    borderRadius: "2px",
+                    backgroundColor: getContributionColor(level === 0 ? 0 : level * 2),
+                  }}
+                />
+              ))}
+              <span>More</span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -200,7 +431,7 @@ export default function Home() {
               <p style={{ color: "var(--text-muted)" }}>No challenges uploaded yet. Be the first to create one!</p>
             ) : (
               featuredProblems.map((prob) => (
-                <div key={prob.id} className="glass-card" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", justifyBetween: "space-between", minHeight: "180px" }}>
+                <div key={prob.id} className="glass-card" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: "180px" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", flex: 1 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
                       <h3 style={{ fontSize: "1.1rem", fontWeight: "bold", wordBreak: "break-word" }}>{prob.title}</h3>

@@ -60,3 +60,9 @@ export const submissionsApi = {
 export const leaderboardApi = {
   get: () => apiRequest("/leaderboard"),
 };
+
+// Streaks APIs
+export const streaksApi = {
+  get: () => apiRequest("/streaks/streaks"),
+  getContributions: () => apiRequest("/streaks/contributions"),
+};
