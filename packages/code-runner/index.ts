@@ -68,13 +68,93 @@ const getTestCasesForProblem = async (problemId: string): Promise<TestCase[]> =>
 
 const updateSubmissionStatus = async (submissionId: string, result: SubmissionResult) => {
   const status = result.success ? "ACCEPTED" : "WRONG_ANSWER";
-  console.log(result);
-  await prisma.submissions.update({
+  console.log("Updating submission status:", submissionId, status);
+  
+  // 1. Update the submission status
+  const updatedSubmission = await prisma.submissions.update({
     where: { id: submissionId },
     data: {
       status: status as any,
     },
+    include: {
+      problems: true
+    }
   });
+
+  const { userId, problemId, problems } = updatedSubmission;
+
+  // 2. Fetch or create userStat
+  let userStat = await prisma.userStat.findUnique({
+    where: { userId }
+  });
+
+  if (!userStat) {
+    userStat = await prisma.userStat.create({
+      data: {
+        userId,
+        problemsSolved: 0,
+        totalSubmissions: 0,
+        rating: 200 // starting rating
+      }
+    });
+  }
+
+  // 3. Increment total submissions
+  let totalSubmissions = userStat.totalSubmissions + 1;
+  let problemsSolved = userStat.problemsSolved;
+  let rating = userStat.rating;
+
+  if (status === "ACCEPTED") {
+    // Check if the user already has an accepted submission for this problem
+    const existingAccepted = await prisma.submissions.findFirst({
+      where: {
+        userId,
+        problemId,
+        status: "ACCEPTED",
+        id: { not: submissionId }
+      }
+    });
+
+    if (!existingAccepted) {
+      problemsSolved += 1;
+      
+      // Calculate rating points based on difficulty
+      let points = 10;
+      if (problems?.difficulty === "MEDIUM") points = 20;
+      if (problems?.difficulty === "HARD") points = 30;
+      
+      rating += points;
+    }
+  }
+
+  // 4. Save updated userStats
+  await prisma.userStat.update({
+    where: { userId },
+    data: {
+      totalSubmissions,
+      problemsSolved,
+      rating
+    }
+  });
+
+  // 5. Upsert leaderboard rating
+  const existingLeaderboard = await prisma.leaderboard.findFirst({
+    where: { userId }
+  });
+
+  if (existingLeaderboard) {
+    await prisma.leaderboard.update({
+      where: { id: existingLeaderboard.id },
+      data: { rating }
+    });
+  } else {
+    await prisma.leaderboard.create({
+      data: {
+        userId,
+        rating
+      }
+    });
+  }
 };
 
 async function runSubmission(code: string, language: string, testCases: TestCase[]): Promise<SubmissionResult> {

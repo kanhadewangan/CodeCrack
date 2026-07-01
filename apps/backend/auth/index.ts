@@ -65,8 +65,8 @@ route.get("/me", async (req, res) => {
                 id: true,
                 email: true,
                 createdAt: true,
-                submissions: true, 
-
+                submissions: true,
+                userStat: true
             }
         })
         res.status(200).json(user);

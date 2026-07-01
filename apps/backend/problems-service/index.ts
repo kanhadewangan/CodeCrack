@@ -7,45 +7,73 @@ const router = express.Router();
 
 router.get("/problems", async (req, res) => {
     try {
-    const problems = await prisma.problems.findMany();
-    res.status(200).json(problems);
-}
-catch (error) {
-    console.error("Error fetching problems:", error);
-    res.status(500).json({ message: "Internal server error" });
-}
+        const { difficulty, tag } = req.query;
+        const whereClause: any = {};
+        
+        if (difficulty) {
+            whereClause.difficulty = difficulty;
+        }
+        
+        if (tag) {
+            whereClause.tags = {
+                has: tag
+            };
+        }
+
+        const problems = await prisma.problems.findMany({
+            where: whereClause,
+            include: {
+                testCases: true
+            }
+        });
+        res.status(200).json(problems);
+    }
+    catch (error) {
+        console.error("Error fetching problems:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
 });
 
 
 router.get("/problems/:id", async (req, res) => {
     const { id } = req.params;
-    const problem = await prisma.problems.findUnique({
-        where: {
-            id: id
-        },
-    })
-    res.status(200).json(problem);
-})
+    try {
+        const problem = await prisma.problems.findUnique({
+            where: {
+                id: id
+            },
+            include: {
+                testCases: true
+            }
+        });
+        res.status(200).json(problem);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching problem" });
+    }
+});
 
 router.post("/problems", async (req, res) => {
-    const { name, description, difficulty, testCases, tags } = req.body;
-    const problem = await prisma.problems.create({
-        data: {
-            name,
-            description,
-            difficulty,
-            testCases: {
-                create: testCases
-            },
-            tags: {
-                connectOrCreate: tags.map((tag: { name: string }) => ({
-                    where: { name: tag.name },
-                    create: tag
-                }))
+    try {
+        const { title, description, difficulty, testCases, tags } = req.body;
+        const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Date.now().toString().slice(-4);
+        
+        const problem = await prisma.problems.create({
+            data: {
+                title,
+                slug,
+                description,
+                difficulty,
+                tags: tags || [],
+                testCases: {
+                    create: testCases || []
+                }
             }
-        }
-    });
-    res.status(201).json(problem);
+        });
+        res.status(201).json(problem);
+    } catch (error) {
+        console.error("Error creating problem:", error);
+        res.status(500).json({ message: "Error creating problem" });
+    }
 });
 
 const problemsRoute = router

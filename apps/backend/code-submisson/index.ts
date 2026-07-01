@@ -81,12 +81,12 @@ router.post("/submission", async (req, res) => {
          await publishToQueue("submission_queue", JSON.stringify(message));
          
          
-         resolve("Submission created successfully")
+         resolve(submission.id)
 
     })
 
     if(submissionPromise){
-        res.status(201).json({ message: "Submission created successfully" });
+        res.status(201).json({ message: "Submission created successfully", submissionId: submissionPromise });
     }}
 
     catch (error) {
