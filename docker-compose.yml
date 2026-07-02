@@ -1,15 +1,19 @@
 version: "3.4"
 
 services:
-    #  database:
-    #    name: database
-    #    image: postgres:15
-    #    environment:
-    #       POSTGRES_USER: postgres
-    #       POSTGRES_PASSWORD: hello
-    #       restart: always
-    #       ports:
-    #       - "5432:5432"  
+  db:
+    container_name: postgres
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: hello
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   rabbitmq:
     image: rabbitmq:4-management
     container_name: rabbitmq
@@ -34,4 +38,5 @@ services:
 
 volumes:
   rabbitmq_data:
+  postgres_data:
 

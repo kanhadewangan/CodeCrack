@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { problemsApi, submissionsApi } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import RequireAuth from "../../components/RequireAuth";
 
 interface Problem {
   id: string;
@@ -61,14 +62,17 @@ export default function ProblemsPage() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
-        <p style={{ color: "var(--text-muted)", fontSize: "1.1rem" }}>Loading problems bank...</p>
-      </div>
+      <RequireAuth>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
+          <p style={{ color: "var(--text-muted)", fontSize: "1.1rem" }}>Loading problems bank...</p>
+        </div>
+      </RequireAuth>
     );
   }
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+    <RequireAuth>
+      <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
       <div>
         <h1 style={{
           fontSize: "2.2rem",
@@ -271,6 +275,7 @@ export default function ProblemsPage() {
           </div>
         </>
       )}
-    </div>
+      </div>
+    </RequireAuth>
   );
 }

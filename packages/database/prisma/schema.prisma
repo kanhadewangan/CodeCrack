@@ -18,6 +18,7 @@ model user {
   submissions submissions[]
   leaderboard leaderboard[]
   contribution contribution[]
+  rewards rewards[]
 }
 
 model userStat{
@@ -46,7 +47,19 @@ model problems {
   testCases testCase[]
   submissions submissions[]
   contribution contribution[]
+  problemHints hints[]
+  contestProblems contestProblems[]
 }
+
+model hints{
+  id      String   @id @default(cuid())
+  problemId   String
+  hint     String
+  createdAt DateTime @default(now())
+  problems problems @relation(fields: [problemId], references: [id])
+  @@index([problemId])
+}
+
 
 
 model testCase {
@@ -113,6 +126,53 @@ model leaderboard {
   id       String   @id @default(cuid())
   userId   String
   rating   Int
+  createdAt DateTime @default(now())
+  users user @relation(fields: [userId], references: [id])
+}
+
+
+model contest {
+  id       String   @id @default(cuid())
+  name     String
+  description   String
+  startTime DateTime
+  endTime DateTime
+  createdAt DateTime @default(now())
+  contestProblems contestProblems[]
+  contestLeaderboard leaderboardContest[]
+}
+
+model contestProblems {
+  id       String   @id @default(cuid())
+  contestId   String
+  problemId   String
+  createdAt DateTime @default(now())
+  contests contest @relation(fields: [contestId], references: [id])
+  problems problems @relation(fields: [problemId], references: [id])
+  @@index([contestId,problemId])
+}
+model leaderboardContest{
+  id String @id @default(cuid())
+  contestId String  
+  userId String
+  rating Int
+  createdAt DateTime @default(now())
+  contests contest @relation(fields: [contestId], references: [id])
+  @@index([contestId,userId])
+}
+
+enum rewardType {
+  BADGE
+  POINTS
+  COUPON
+  SOL
+}
+
+model rewards{
+  id String @id @default(cuid())
+  userId String
+  rewardType rewardType
+  rewardValue String
   createdAt DateTime @default(now())
   users user @relation(fields: [userId], references: [id])
 }

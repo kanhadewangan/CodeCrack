@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { problemsApi } from "../../lib/api";
+import RequireAuth from "../../components/RequireAuth";
 
 interface TestCaseInput {
   input: string;
@@ -69,7 +70,8 @@ export default function NewProblemPage() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: "800px", margin: "0 auto" }}>
+    <RequireAuth>
+      <div className="animate-fade-in" style={{ maxWidth: "800px", margin: "0 auto" }}>
       <div style={{ marginBottom: "2rem" }}>
         <h1 style={{
           fontSize: "2rem",
@@ -242,6 +244,7 @@ export default function NewProblemPage() {
           {loading ? "Creating problem..." : "Publish Problem"}
         </button>
       </form>
-    </div>
+      </div>
+    </RequireAuth>
   );
 }

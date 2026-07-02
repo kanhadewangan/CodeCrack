@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { leaderboardApi } from "../../lib/api";
+import RequireAuth from "../../components/RequireAuth";
 
 interface LeaderboardItem {
   rank: number;
@@ -48,14 +49,17 @@ export default function LeaderboardPage() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
-        <p style={{ color: "var(--text-muted)", fontSize: "1.1rem" }}>Loading leaderboard...</p>
-      </div>
+      <RequireAuth>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
+          <p style={{ color: "var(--text-muted)", fontSize: "1.1rem" }}>Loading leaderboard...</p>
+        </div>
+      </RequireAuth>
     );
   }
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+    <RequireAuth>
+      <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
       {/* Title section */}
       <div style={{ textAlign: "center" }}>
         <h1 style={{
@@ -215,6 +219,7 @@ export default function LeaderboardPage() {
           </div>
         </>
       )}
-    </div>
+      </div>
+    </RequireAuth>
   );
 }

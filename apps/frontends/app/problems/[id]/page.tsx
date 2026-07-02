@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { problemsApi, submissionsApi } from "../../../lib/api";
 import Link from "next/link";
+import RequireAuth from "../../../components/RequireAuth";
 
 interface Problem {
   id: string;
@@ -205,26 +206,31 @@ export default function ProblemDetailsPage({ params }: { params: Promise<{ id: s
 
   if (loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
-        <p style={{ color: "var(--text-muted)", fontSize: "1.1rem" }}>Loading workbench workspace...</p>
-      </div>
+      <RequireAuth>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
+          <p style={{ color: "var(--text-muted)", fontSize: "1.1rem" }}>Loading workbench workspace...</p>
+        </div>
+      </RequireAuth>
     );
   }
 
   if (error || !problem) {
     return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>
-        <h3 style={{ color: "var(--hard)", marginBottom: "1rem" }}>An Error Occurred</h3>
-        <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem" }}>{error || "Problem requested was not found."}</p>
-        <Link href="/problems" className="btn btn-secondary">
-          Go back to Problems
-        </Link>
-      </div>
+      <RequireAuth>
+        <div style={{ padding: "2rem", textAlign: "center" }}>
+          <h3 style={{ color: "var(--hard)", marginBottom: "1rem" }}>An Error Occurred</h3>
+          <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem" }}>{error || "Problem requested was not found."}</p>
+          <Link href="/problems" className="btn btn-secondary">
+            Go back to Problems
+          </Link>
+        </div>
+      </RequireAuth>
     );
   }
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+    <RequireAuth>
+      <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
       {/* Back button */}
       <div>
         <Link href="/problems" style={{ color: "var(--text-muted)", fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
@@ -515,6 +521,7 @@ export default function ProblemDetailsPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </RequireAuth>
   );
 }
