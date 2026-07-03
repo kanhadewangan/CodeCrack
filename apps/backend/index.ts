@@ -5,21 +5,19 @@ import {authMiddleware} from "./auth/middleware.ts";
 import submissionsRoute from "./code-submisson/index.ts";
 import { prisma } from "@repo/db";
 import streaksRoute from "./code-submisson/streaks.ts";
+import cors from "cors";
 
 const app = express();
+
 
 app.use(express.json());
 
 // Enable CORS
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-  next();
-});
+app.use(cors({
+  origin: "*", // Allow all origins (you can restrict this to specific domains)
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Allow specific HTTP methods
+  allowedHeaders: "Content-Type,Authorization", // Allow specific headers
+}));
 
 app.use("/auth", route);
 app.use("/problems", problemsRoute);
