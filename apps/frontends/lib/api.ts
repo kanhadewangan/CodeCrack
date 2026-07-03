@@ -1,4 +1,4 @@
-const API_BASE = "https://code-crack-backend-9dgt-dl48ujd47-kanhadewangans-projects.vercel.app/";
+const API_BASE = "http://localhost:3001"; // Replace with your actual API base URL
 
 function getAuthHeaders(): HeadersInit {
   if (typeof window === "undefined") return {};

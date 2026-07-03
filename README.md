@@ -1,159 +1,155 @@
-# Turborepo starter
+# Competitive Programming Platform
 
-This Turborepo starter is maintained by the Turborepo core team.
+A full-stack coding practice platform — browse problems, submit solutions, get them judged against test cases in isolated Docker containers, track streaks, and compete on a leaderboard.
 
-## Using this example
+Built as a Turborepo monorepo with Bun.
 
-Run the following command:
+## Architecture
 
-```sh
-npx create-turbo@latest
+```mermaid
+flowchart TB
+    subgraph Client["Client"]
+        FE["Next.js Frontend<br/>(apps/frontends)"]
+    end
+
+    subgraph Vercel["Vercel"]
+        FE
+    end
+
+    subgraph Backend["Backend API — apps/backend (Express, Bun)"]
+        direction TB
+        API["Express App<br/>index.ts"]
+        AUTH["/auth<br/>JWT + bcrypt"]
+        PROB["/problems<br/>problems-service"]
+        SUB["/api<br/>code-submisson"]
+        STREAK["/streaks<br/>streaks.ts"]
+        LEAD["/leaderboard"]
+        MW["authMiddleware"]
+
+        API --> AUTH
+        API --> PROB
+        API --> SUB
+        API --> STREAK
+        API --> LEAD
+        MW -.protects.-> SUB
+        MW -.protects.-> STREAK
+    end
+
+    subgraph RenderHost["Render (persistent web service)"]
+        Backend
+    end
+
+    subgraph Shared["Shared Packages — packages/"]
+        DB["@repo/db<br/>Prisma + pg adapter"]
+        QUEUE["@repo/queue<br/>RabbitMQ client"]
+        RUNNER["@repo/code-runner<br/>dockerode"]
+    end
+
+    subgraph VPS["VPS / Oracle Free Tier (Docker host)"]
+        direction TB
+        BROKER["RabbitMQ Broker"]
+        WORKER["Code Execution Worker<br/>consumes submission queue"]
+        SANDBOX["Ephemeral Docker Containers<br/>(run untrusted user code)"]
+        WORKER -->|dockerode| SANDBOX
+    end
+
+    subgraph DataStore["Managed Postgres (pooled)"]
+        PG[("PostgreSQL<br/>users, problems, submissions,<br/>leaderboard, streaks")]
+    end
+
+    FE -->|HTTPS REST| API
+    AUTH --> DB
+    PROB --> DB
+    STREAK --> DB
+    LEAD --> DB
+    SUB -->|publish job| QUEUE
+    QUEUE -->|AMQP| BROKER
+    BROKER -->|consume job| WORKER
+    WORKER -->|write result| DB
+    DB -->|Prisma Client| PG
+
+    classDef vercel fill:#000,color:#fff,stroke:#000
+    classDef render fill:#5b21b6,color:#fff,stroke:#5b21b6
+    classDef vps fill:#0f766e,color:#fff,stroke:#0f766e
+    classDef db fill:#1e3a8a,color:#fff,stroke:#1e3a8a
+    class FE vercel
+    class API,AUTH,PROB,SUB,STREAK,LEAD,MW render
+    class BROKER,WORKER,SANDBOX vps
+    class PG,DB db
 ```
 
-## What's inside?
+### Request flow
 
-This Turborepo includes the following packages/apps:
+1. **Frontend** (Next.js on Vercel) calls the backend over HTTPS.
+2. **Backend** (Express on Render) handles `/auth`, `/problems`, `/leaderboard`, `/streaks` directly against Postgres via `@repo/db` (Prisma).
+3. **Code submission** (`/api`) doesn't execute code inline — it publishes a job to RabbitMQ via `@repo/queue` and returns immediately.
+4. A separate **worker process**, running on a VPS with Docker access, consumes the queue and uses `@repo/code-runner` (`dockerode`) to spin up an isolated container per submission, run the user's code against test cases, and write the result back to Postgres.
+5. The frontend polls or re-fetches submission status once the worker finishes.
 
-### Apps and Packages
+This split exists because serverless/PaaS platforms (Vercel, Render, Railway) don't expose a Docker socket to your app — only a real VM can safely run arbitrary untrusted code in containers.
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+## Monorepo layout
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```
+.
+├── apps/
+│   ├── backend/            # Express API (auth, problems, submissions, streaks, leaderboard)
+│   └── frontends/          # Next.js app
+├── packages/
+│   ├── database/           # Prisma schema, generated client, @repo/db
+│   ├── code-runner/        # dockerode-based sandboxed execution, @repo/code-runner
+│   ├── rabbit-mq/          # AMQP client, @repo/queue
+│   ├── eslint-config/
+│   ├── typescript-config/
+│   └── ui/                 # shared React components
+├── docker-compose.yml
+├── turbo.json
+└── bun.lock
 ```
 
-Without global `turbo`, use your package manager:
+## Tech stack
 
-```sh
-cd my-turborepo
-npx turbo build
-bun dlx turbo build
-bun exec turbo build
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js, React, TypeScript |
+| Backend API | Express, TypeScript, Bun |
+| Database | PostgreSQL, Prisma 7 (`@prisma/adapter-pg`) |
+| Queue | RabbitMQ (`amqplib`) |
+| Code execution | Docker (`dockerode`) |
+| Auth | JWT, bcrypt |
+| Monorepo tooling | Turborepo, Bun workspaces |
+
+## Deployment
+
+| Component | Platform |
+|---|---|
+| Frontend (`apps/frontends`) | Vercel |
+| Backend API (`apps/backend`) | Render (persistent web service) |
+| Code execution worker + RabbitMQ | VPS with Docker (e.g. Oracle free tier / Hetzner) |
+| PostgreSQL | Managed Postgres with a pooled connection string (e.g. Neon/Supabase) |
+
+## Local development
+
+```bash
+# install everything from the repo root
+bun install
+
+# spin up Postgres + RabbitMQ locally
+docker compose up -d
+
+# generate Prisma client
+cd packages/database && bunx prisma generate
+
+# run all apps via Turborepo
+cd ../.. && bun run dev
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+## Environment variables
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+Each app/package reads its own `.env`. At minimum you'll need:
 
-```sh
-turbo build --filter=docs
 ```
-
-Without global `turbo`:
-
-```sh
-npx turbo build --filter=docs
-bun exec turbo build --filter=docs
-bun exec turbo build --filter=docs
+DATABASE_URL=postgres://...?sslmode=verify-full
+JWT_SECRET=...
+RABBITMQ_URL=amqp://...
 ```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-bun exec turbo dev
-bun exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-bun exec turbo dev --filter=web
-bun exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-bun exec turbo login
-bun exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-bun exec turbo link
-bun exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
