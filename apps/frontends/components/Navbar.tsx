@@ -17,17 +17,14 @@ export default function Navbar() {
       setStreaks(null);
       return;
     }
-
     const loadStreaks = async () => {
       try {
         const data = await streaksApi.get();
         setStreaks(data?.streaks ?? 0);
-      } catch (err) {
-        console.error("Error fetching streaks:", err);
+      } catch {
         setStreaks(0);
       }
     };
-
     loadStreaks();
   }, [user]);
 
@@ -35,11 +32,14 @@ export default function Navbar() {
     path === "/" ? pathname === "/" : pathname?.startsWith(path);
 
   const navLinks = [
+    { href: "/", label: "Dashboard" },
     { href: "/problems", label: "Problems" },
     { href: "/leaderboard", label: "Leaderboard" },
-    { href: "/new-problem", label: "Add Problem" },
   ];
-  
+
+  if (user) {
+    navLinks.push({ href: "/new-problem", label: "Add Problem" });
+  }
 
   return (
     <>
@@ -48,11 +48,11 @@ export default function Navbar() {
           position: "sticky",
           top: 0,
           zIndex: 100,
-          background: "rgba(10,6,18,0.85)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          borderBottom: "1px solid rgba(124,58,237,0.18)",
-          marginBottom: "2rem",
+          background: "rgba(11,11,20,0.88)",
+          backdropFilter: "blur(18px)",
+          WebkitBackdropFilter: "blur(18px)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          marginBottom: "0",
         }}
       >
         <div
@@ -60,10 +60,11 @@ export default function Navbar() {
             maxWidth: "1280px",
             margin: "0 auto",
             padding: "0 2rem",
-            height: "64px",
+            height: "60px",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            gap: "1rem",
           }}
         >
           {/* Logo */}
@@ -74,147 +75,159 @@ export default function Navbar() {
               alignItems: "center",
               gap: "0.5rem",
               textDecoration: "none",
+              flexShrink: 0,
             }}
           >
-            {/* Icon mark */}
             <div
               style={{
-                width: "32px",
-                height: "32px",
+                width: "30px",
+                height: "30px",
                 borderRadius: "8px",
                 background: "linear-gradient(135deg, #7C3AED, #A855F7)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: "1rem",
-                boxShadow: "0 0 16px rgba(124,58,237,0.4)",
+                fontSize: "0.85rem",
+                boxShadow: "0 0 12px rgba(124,58,237,0.5)",
+                fontWeight: "700",
+                color: "#fff",
               }}
             >
               {"</>"}
             </div>
             <span
               style={{
-                fontFamily: "var(--font-heading, 'Space Grotesk', sans-serif)",
-                fontSize: "1.3rem",
+                fontFamily: "var(--font-heading)",
+                fontSize: "1.15rem",
                 fontWeight: "700",
-                background: "linear-gradient(135deg, #C084FC, #9F5EF6)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                letterSpacing: "-0.03em",
+                color: "var(--text-heading)",
+                letterSpacing: "-0.02em",
               }}
             >
               CodeCrack
             </span>
           </Link>
 
-          {/* Desktop Nav */}
+          {/* Desktop Nav Links */}
           <nav
             className="hide-mobile"
             style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}
           >
-            <Link
-              href="/"
-              className={`nav-link ${isActive("/") && !isActive("/problems") && !isActive("/leaderboard") ? "active" : ""}`}
-              style={{ padding: "0.4rem 0.875rem", borderRadius: "8px", display: "block" }}
-            >
-              Dashboard
-            </Link>
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`nav-link ${isActive(link.href) ? "active" : ""}`}
-                style={{ padding: "0.4rem 0.875rem", borderRadius: "8px", display: "block" }}
-              >
-                {link.label}
-              </Link>
-            ))}
-            {user && (
-              <div
-                style={{
-                  marginLeft: "0.5rem",
-                  paddingLeft: "0.75rem",
-                  borderLeft: "1px solid rgba(124,58,237,0.22)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.45rem",
-                  color: "#FCD34D",
-                  fontSize: "0.78rem",
-                  fontWeight: 700,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <span>
-                  🔥 {streaks ?? 0} day{(streaks ?? 0) === 1 ? "" : "s"}
-                </span>
-              </div>
-            )}
+            {navLinks.map((link) => {
+              const active =
+                link.href === "/"
+                  ? isActive("/") && !isActive("/problems") && !isActive("/leaderboard") && !isActive("/new-problem")
+                  : isActive(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  style={{
+                    padding: "0.35rem 0.85rem",
+                    borderRadius: "7px",
+                    fontSize: "0.875rem",
+                    fontWeight: active ? "600" : "500",
+                    color: active ? "var(--text-heading)" : "var(--text-muted)",
+                    textDecoration: "none",
+                    position: "relative",
+                    transition: "color 0.18s",
+                    borderBottom: active ? "2px solid var(--purple-2)" : "2px solid transparent",
+                    paddingBottom: "calc(0.35rem - 2px)",
+                  }}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
 
-          {/* User actions */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          {/* Right Area */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.6rem",
+              flexShrink: 0,
+            }}
+          >
+            {/* Search bar */}
+            <div className="search-input-wrap hide-mobile" style={{ minWidth: "180px" }}>
+              <svg width="13" height="13" viewBox="0 0 20 20" fill="none" style={{ color: "var(--text-dim)", flexShrink: 0 }}>
+                <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zm0 0l4.35 4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              <input placeholder="Search problems, tags, contests" readOnly />
+              <span className="kbd">⌘K</span>
+            </div>
+
             {user ? (
               <>
-                {/* Avatar + info */}
+                {/* Streak badge */}
                 <div
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: "0.6rem",
-                    padding: "0.35rem 0.75rem 0.35rem 0.35rem",
-                    borderRadius: "999px",
-                    background: "rgba(124,58,237,0.1)",
-                    border: "1px solid rgba(124,58,237,0.2)",
+                    gap: "0.25rem",
+                    fontSize: "0.8rem",
+                    fontWeight: "700",
+                    color: "#F97316",
+                    padding: "0.3rem 0.65rem",
+                    borderRadius: "var(--radius-pill)",
+                    background: "rgba(249, 115, 22, 0.1)",
+                    border: "1px solid rgba(249,115,22,0.2)",
                   }}
                   className="hide-mobile"
                 >
-                  {/* Avatar */}
-                  <div
-                    style={{
-                      width: "28px",
-                      height: "28px",
-                      borderRadius: "50%",
-                      background: "linear-gradient(135deg,#7C3AED,#C084FC)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "0.75rem",
-                      fontWeight: "700",
-                      color: "#fff",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {(user.email?.[0] || "U").toUpperCase()}
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column" }}>
-                    <span
-                      style={{
-                        fontSize: "0.8rem",
-                        fontWeight: "600",
-                        color: "var(--text-heading, #F1EEF9)",
-                        lineHeight: 1.2,
-                      }}
-                    >
-                      {user.email.split("@")[0]}
-                    </span>
-                    {user.userStat?.[0] && (
-                      <span
-                        style={{
-                          fontSize: "0.68rem",
-                          color: "var(--purple-3, #C084FC)",
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        ⚡ {user.userStat[0].rating} pts
-                      </span>
-                    )}
-                  </div>
+                  <span>🔥</span>
+                  <span>{streaks ?? 0}</span>
+                </div>
+
+                {/* Bell */}
+                <button
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--text-muted)",
+                    padding: "0.35rem",
+                    borderRadius: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    transition: "color 0.18s",
+                  }}
+                  className="hide-mobile"
+                  aria-label="Notifications"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                </button>
+
+                {/* Avatar */}
+                <div
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #7C3AED, #C084FC)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "0.8rem",
+                    fontWeight: "700",
+                    color: "#fff",
+                    flexShrink: 0,
+                    cursor: "pointer",
+                    border: "2px solid rgba(157,92,246,0.3)",
+                  }}
+                  title={user.email}
+                >
+                  {(user.email?.[0] || "U").toUpperCase()}
                 </div>
 
                 <button
                   onClick={logout}
-                  className="btn btn-ghost"
-                  style={{ padding: "0.4rem 0.9rem", fontSize: "0.8rem" }}
+                  className="btn btn-ghost hide-mobile"
+                  style={{ padding: "0.35rem 0.75rem", fontSize: "0.8rem" }}
                 >
                   Logout
                 </button>
@@ -224,16 +237,16 @@ export default function Navbar() {
                 <Link
                   href="/login"
                   className="btn btn-ghost"
-                  style={{ padding: "0.4rem 0.9rem", fontSize: "0.85rem" }}
+                  style={{ padding: "0.38rem 0.85rem", fontSize: "0.85rem" }}
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/register"
                   className="btn btn-primary"
-                  style={{ padding: "0.4rem 1rem", fontSize: "0.85rem" }}
+                  style={{ padding: "0.38rem 0.95rem", fontSize: "0.85rem" }}
                 >
-                  Get Started
+                  Get Started →
                 </Link>
               </>
             )}
@@ -242,7 +255,7 @@ export default function Navbar() {
             <button
               className="hide-desktop btn btn-ghost"
               onClick={() => setMobileOpen((p) => !p)}
-              style={{ padding: "0.4rem 0.6rem", fontSize: "1.1rem" }}
+              style={{ padding: "0.38rem 0.6rem", fontSize: "1rem" }}
               aria-label="Toggle menu"
             >
               {mobileOpen ? "✕" : "☰"}
@@ -254,51 +267,37 @@ export default function Navbar() {
         {mobileOpen && (
           <div
             style={{
-              borderTop: "1px solid rgba(124,58,237,0.15)",
-              background: "rgba(10,6,18,0.98)",
-              padding: "1rem 2rem 1.5rem",
+              borderTop: "1px solid rgba(255,255,255,0.06)",
+              background: "rgba(11,11,20,0.98)",
+              padding: "1rem 1.5rem 1.5rem",
               display: "flex",
               flexDirection: "column",
-              gap: "0.5rem",
+              gap: "0.4rem",
             }}
           >
-            <Link href="/" className="nav-link" onClick={() => setMobileOpen(false)}>
-              Dashboard
-            </Link>
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className="nav-link"
                 onClick={() => setMobileOpen(false)}
+                style={{ padding: "0.6rem 0" }}
               >
                 {link.label}
               </Link>
             ))}
-            {user && (
-              <div
-                style={{
-                  marginTop: "0.5rem",
-                  padding: "0.65rem 0.75rem",
-                  borderRadius: "10px",
-                  background: "rgba(245, 158, 11, 0.12)",
-                  border: "1px solid rgba(245, 158, 11, 0.3)",
-                  color: "#FCD34D",
-                  fontSize: "0.82rem",
-                  fontWeight: 600,
-                }}
+            {user ? (
+              <button
+                onClick={() => { logout(); setMobileOpen(false); }}
+                className="btn btn-ghost"
+                style={{ marginTop: "0.5rem", width: "100%" }}
               >
-                🔥 Current streak: {streaks ?? 0} day{(streaks ?? 0) === 1 ? "" : "s"}
-              </div>
-            )}
-            {!user && (
+                Logout
+              </button>
+            ) : (
               <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
-                <Link href="/login" className="btn btn-secondary" style={{ flex: 1 }}>
-                  Sign In
-                </Link>
-                <Link href="/register" className="btn btn-primary" style={{ flex: 1 }}>
-                  Get Started
-                </Link>
+                <Link href="/login" className="btn btn-secondary" style={{ flex: 1 }}>Sign In</Link>
+                <Link href="/register" className="btn btn-primary" style={{ flex: 1 }}>Get Started</Link>
               </div>
             )}
           </div>
