@@ -6,8 +6,9 @@ import submissionsRoute from "./code-submisson/index.ts";
 import { prisma } from "@repo/db";
 import streaksRoute from "./code-submisson/streaks.ts";
 import cors from "cors";
-
+import { type Request, type Response } from "express";
 const app = express();
+
 
 
 app.use(express.json());
@@ -23,7 +24,7 @@ app.use("/problems", problemsRoute);
 app.use("/streaks", authMiddleware, streaksRoute);
 app.use("/api", authMiddleware, submissionsRoute);
 
-app.get("/leaderboard", async (req, res) => {
+app.get("/leaderboard", async (req: Request, res: Response) => {
   try {
     const list = await prisma.leaderboard.findMany({
       orderBy: {

@@ -2,10 +2,10 @@ import express from "express";
 import { prisma } from "@repo/db";
 
 const router = express.Router();
+import { type Request, type Response } from "express";
 
 
-
-router.get("/problems", async (req, res) => {
+router.get("/problems", async (req: Request, res: Response) => {
     try {
         const { difficulty, tag } = req.query;
         const whereClause: any = {};
@@ -35,12 +35,12 @@ router.get("/problems", async (req, res) => {
 });
 
 
-router.get("/problems/:id", async (req, res) => {
+router.get("/problems/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
         const problem = await prisma.problems.findUnique({
             where: {
-                id: id
+                id: id as string
             },
             include: {
                 testCases: true
@@ -52,7 +52,7 @@ router.get("/problems/:id", async (req, res) => {
     }
 });
 
-router.post("/problems", async (req, res) => {
+router.post("/problems", async (req: Request, res: Response) => {
     try {
         const { title, description, difficulty, testCases, tags } = req.body;
         const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Date.now().toString().slice(-4);

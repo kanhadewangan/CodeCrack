@@ -1,4 +1,5 @@
 import express from "express";
+import {type Request, type Response} from "express";
 import { prisma } from "@repo/db";
 import jwt from "jsonwebtoken";
 import brcypt from "bcrypt";
@@ -7,7 +8,7 @@ const route  = express.Router ();
 
 
 
-route.post("/register", async (req, res) => {
+route.post("/register", async (req: Request, res: Response) => {
     const { email, password } = req.body;
     const hashedPassword = await brcypt.hash(password, 10);
     const user = await prisma.user.create({
@@ -25,7 +26,7 @@ res.status(201).json(user);
 })
 
 
-route.post("/login", async (req, res) => {
+route.post("/login", async (req: Request, res: Response) => {
     const { email, password } = req.body;
     if(!email || !password){
         return res.status(400).json({ message: "Email and password are required" });
@@ -49,7 +50,7 @@ route.post("/login", async (req, res) => {
 
 });
 
-route.get("/me", async (req, res) => {
+route.get("/me", async (req: Request, res: Response) => {
     const authHeader = req.headers.authorization;
     if(!authHeader || !authHeader.startsWith("Bearer ")){
         return res.status(401).json({ message: "Unauthorized" });
