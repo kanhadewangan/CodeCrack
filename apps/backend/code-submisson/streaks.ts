@@ -8,13 +8,13 @@ const route = express.Router();
 
 
 route.get("/streaks", async (req, res) => {
-    const streaks = await getStreaks(req.user.id);
+    const streaks = await getStreaks(req.user.id as string);
     res.status(200).json({ streaks });
 })
 
 
 route.get("/contributions", async (req, res) => {
-    const contributions = await getContributionMap(req.user.id);
+    const contributions = await getContributionMap(req.user.id as string);
     const obj = Object.fromEntries(contributions);
     res.status(200).json(obj);
 })
