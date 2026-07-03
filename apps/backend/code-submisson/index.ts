@@ -1,6 +1,7 @@
 import express from "express";
 import {prisma} from "@repo/db";
 import {publishToQueue} from "@repo/queue"
+import {type Request, type Response, type NextFunction} from "express";
 import {startWorker} from "@repo/code-runner"
 import dotenv from "dotenv";
 dotenv.config();
@@ -11,8 +12,7 @@ startWorker().catch((error) => {
   process.exit(1);
 });
 
-console.log("RABBITMQQ_ENV", process.env.RABBITMQQ_ENV)
-router.get("/submissions", async (req, res) => {
+router.get("/submissions", async (req: Request, res: Response) => {
     const submissions = await prisma.submissions.findMany({
         where:{
             userId: (req as any).user.id
@@ -29,11 +29,11 @@ router.get("/submissions", async (req, res) => {
 })
 
 
-router.get("/submissions/:id", async (req, res) => {
+router.get("/submissions/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
     const submission = await prisma.submissions.findUnique({
         where: {
-            id: id,
+            id: id as string,
             userId: (req as any).user.id
         },
         select: {
@@ -47,7 +47,7 @@ router.get("/submissions/:id", async (req, res) => {
 })
 
 
-router.post("/submission", async (req, res) => {
+router.post("/submission", async (req: Request, res: Response) => {
    
    try {
     const {  problemId, code, language } = req.body;

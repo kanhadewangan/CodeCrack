@@ -1,19 +1,19 @@
 import {prisma} from "@repo/db";
 import express from "express";
-
+import {type Request, type Response, type NextFunction} from "express";
 const route = express.Router();
 
 
 
 
 
-route.get("/streaks", async (req, res) => {
+route.get("/streaks", async (req: Request, res: Response) => {
     const streaks = await getStreaks(req.user.id as string);
     res.status(200).json({ streaks });
 })
 
 
-route.get("/contributions", async (req, res) => {
+route.get("/contributions", async (req: Request, res: Response) => {
     const contributions = await getContributionMap(req.user.id as string);
     const obj = Object.fromEntries(contributions);
     res.status(200).json(obj);
