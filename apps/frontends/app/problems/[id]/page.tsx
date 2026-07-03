@@ -26,22 +26,16 @@ interface Submission {
 }
 
 const JS_TEMPLATE = `// Write your JavaScript solution here
-// Input is passed details through process.argv or standard stdin parser.
-// For testing, read input from standard input:
+// write  your code in a function and test it and submit it to see if it passes all the test cases
 // Example:
-const fs = require('fs');
-const input = fs.readFileSync('/dev/stdin', 'utf-8').trim();
-
-function solve(inputData) {
-  // Your solution logic here
-  console.log(inputData);
-}
-
-solve(input);
-`;
+// function solve() {
+//   // Your solution logic here
+//   console.log("Hello, World!");
+// };
+  
+}`;
 
 const PY_TEMPLATE = `# Write your Python solution here
-# Read standard input and print the results
 import sys
 
 def solve():
@@ -55,7 +49,13 @@ if __name__ == '__main__':
     solve()
 `;
 
-export default function ProblemDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+const TABS = ["Description", "Editorial", "Submissions", "Discussion"];
+
+export default function ProblemDetailsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { user } = useAuth();
   const { id } = React.use(params);
 
@@ -63,8 +63,10 @@ export default function ProblemDetailsPage({ params }: { params: Promise<{ id: s
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"description" | "submissions">("description");
-  const [language, setLanguage] = useState<"javascript" | "python">("javascript");
+  const [activeTab, setActiveTab] = useState<string>("Description");
+  const [language, setLanguage] = useState<"javascript" | "python">(
+    "javascript"
+  );
   const [code, setCode] = useState(JS_TEMPLATE);
 
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -72,50 +74,44 @@ export default function ProblemDetailsPage({ params }: { params: Promise<{ id: s
 
   const [submitting, setSubmitting] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<string | null>(null);
-  const [submissionProgressLog, setSubmissionProgressLog] = useState<string[]>([]);
+  const [submissionProgressLog, setSubmissionProgressLog] = useState<string[]>(
+    []
+  );
   const [selectedSubCode, setSelectedSubCode] = useState<string | null>(null);
+  const [showConsole, setShowConsole] = useState(false);
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load problem details and previous submissions
   useEffect(() => {
     async function loadProblem() {
       try {
         const item = await problemsApi.get(id);
         setProblem(item);
       } catch (err: any) {
-        setError(err.message || "Failed to load problem description.");
+        setError(err.message || "Failed to load problem.");
       } finally {
         setLoading(false);
       }
     }
-
     loadProblem();
     loadSubmissions();
-
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
   }, [id, user]);
 
-  // Handle template updates on language toggling
   useEffect(() => {
-    if (language === "javascript") {
-      setCode(JS_TEMPLATE);
-    } else {
-      setCode(PY_TEMPLATE);
-    }
+    setCode(language === "javascript" ? JS_TEMPLATE : PY_TEMPLATE);
   }, [language]);
 
   const loadSubmissions = async () => {
     if (!user) return;
     setLoadingSubmissions(true);
     try {
-      const allSubmissions = await submissionsApi.list();
-      const filtered = allSubmissions.filter((sub: any) => sub.problemId === id);
-      setSubmissions(filtered);
-    } catch (err) {
-      console.error("Failed to load user submissions list:", err);
+      const all = await submissionsApi.list();
+      setSubmissions(all.filter((s: any) => s.problemId === id));
+    } catch {
+      /* ignore */
     } finally {
       setLoadingSubmissions(false);
     }
@@ -123,76 +119,84 @@ export default function ProblemDetailsPage({ params }: { params: Promise<{ id: s
 
   const pollSubmissionStatus = (subId: string) => {
     let attempts = 0;
-    setSubmissionProgressLog((prev) => [...prev, "Spawning compilation sandbox context..."]);
-    
+    setSubmissionProgressLog(["Spawning compilation sandbox context..."]);
+
     pollIntervalRef.current = setInterval(async () => {
       attempts++;
       if (attempts > 30) {
-        // Stop polling after 30 seconds
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         setSubmissionStatus("TIME_LIMIT_EXCEEDED");
-        setSubmissionProgressLog((prev) => [...prev, "Timed out checking status from judge runner queue."]);
+        setSubmissionProgressLog((p) => [
+          ...p,
+          "Timed out checking status from judge runner queue.",
+        ]);
         setSubmitting(false);
         loadSubmissions();
         return;
       }
-
       try {
         const statusData = await submissionsApi.get(subId);
         setSubmissionStatus(statusData.status);
-
         if (statusData.status === "PENDING") {
-          setSubmissionProgressLog((prev) => [...prev, `Waiting in rabbitmq queue (attempt ${attempts})...`]);
+          setSubmissionProgressLog((p) => [
+            ...p,
+            `Waiting in queue (attempt ${attempts})...`,
+          ]);
         } else if (statusData.status === "RUNNING") {
-          setSubmissionProgressLog((prev) => [...prev, "Compiling and executing test cases..."]);
+          setSubmissionProgressLog((p) => [
+            ...p,
+            "Compiling and executing test cases...",
+          ]);
         } else {
-          // Verdict reached
           if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-          setSubmissionProgressLog((prev) => [
-            ...prev,
-            `Verdict reached: ${statusData.status} ✔`
+          setSubmissionProgressLog((p) => [
+            ...p,
+            `Verdict reached: ${statusData.status} ✔`,
           ]);
           setSubmitting(false);
           loadSubmissions();
         }
-      } catch (err) {
-        console.error("Poller check failed:", err);
+      } catch {
+        /* ignore */
       }
     }, 1200);
   };
 
-  const handleSubSubmit = async () => {
+  const handleSubmit = async () => {
     if (!user) {
       setError("You must be logged in to submit code.");
       return;
     }
-
     setSubmitting(true);
     setSubmissionStatus("PENDING");
+    setShowConsole(true);
     setSubmissionProgressLog(["Registering submission request with core server API..."]);
-
     try {
       const response = await submissionsApi.submit({
         problemId: id,
         code,
-        language: language === "javascript" ? "js" : "py"
+        language: language === "javascript" ? "js" : "py",
       });
-
       if (response.submissionId) {
         pollSubmissionStatus(response.submissionId);
       } else {
-        setSubmissionProgressLog((prev) => [...prev, "Failed to fetch session queue tracker token."]);
+        setSubmissionProgressLog((p) => [
+          ...p,
+          "Failed to fetch session queue tracker token.",
+        ]);
         setSubmitting(false);
       }
     } catch (err: any) {
       setSubmissionStatus("RUNTIME_ERROR");
-      setSubmissionProgressLog((prev) => [...prev, `Core request failed: ${err.message}`]);
+      setSubmissionProgressLog((p) => [
+        ...p,
+        `Core request failed: ${err.message}`,
+      ]);
       setSubmitting(false);
     }
   };
 
-  // Helper badge color loader
-  const getBadgeColorClass = (status: string) => {
+  const getBadgeClass = (status: string) => {
     switch (status.toUpperCase()) {
       case "ACCEPTED":
         return "badge-accepted";
@@ -207,8 +211,15 @@ export default function ProblemDetailsPage({ params }: { params: Promise<{ id: s
   if (loading) {
     return (
       <RequireAuth>
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
-          <p style={{ color: "var(--text-muted)", fontSize: "1.1rem" }}>Loading workbench workspace...</p>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "70vh",
+          }}
+        >
+          <div className="spinner" />
         </div>
       </RequireAuth>
     );
@@ -217,310 +228,609 @@ export default function ProblemDetailsPage({ params }: { params: Promise<{ id: s
   if (error || !problem) {
     return (
       <RequireAuth>
-        <div style={{ padding: "2rem", textAlign: "center" }}>
-          <h3 style={{ color: "var(--hard)", marginBottom: "1rem" }}>An Error Occurred</h3>
-          <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem" }}>{error || "Problem requested was not found."}</p>
+        <div
+          style={{
+            maxWidth: "1280px",
+            margin: "0 auto",
+            padding: "2rem",
+            textAlign: "center",
+          }}
+        >
+          <h3
+            style={{ color: "var(--hard)", marginBottom: "1rem", fontSize: "1.2rem" }}
+          >
+            Problem not found
+          </h3>
+          <p
+            style={{
+              color: "var(--text-muted)",
+              marginBottom: "1.5rem",
+              fontSize: "0.9rem",
+            }}
+          >
+            {error || "The requested problem could not be found."}
+          </p>
           <Link href="/problems" className="btn btn-secondary">
-            Go back to Problems
+            ← Back to Problems
           </Link>
         </div>
       </RequireAuth>
     );
   }
 
+  // Parse description into sections
+  const descLines = problem.description.split("\n");
+
   return (
     <RequireAuth>
-      <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-      {/* Back button */}
-      <div>
-        <Link href="/problems" style={{ color: "var(--text-muted)", fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
-          ← Back to code bank
-        </Link>
-      </div>
-
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
-        gap: "1.5rem",
-        alignItems: "stretch"
-      }}>
-        {/* LEFT COLUMN: DESCRIPTION OR SUBMISSIONS */}
-        <div className="glass-panel" style={{ display: "flex", flexDirection: "column", height: "700px" }}>
-          {/* Tabs header */}
-          <div style={{
+      <div
+        style={{
+          maxWidth: "1280px",
+          margin: "0 auto",
+          padding: "0",
+          display: "flex",
+          flexDirection: "column",
+          height: "calc(100vh - 60px)",
+        }}
+        className="animate-fade-in"
+      >
+        {/* Breadcrumb */}
+        <div
+          style={{
+            padding: "0.65rem 1.5rem",
+            borderBottom: "1px solid var(--border-soft)",
             display: "flex",
-            borderBottom: "1px solid var(--border)",
-            background: "rgba(255, 255, 255, 0.01)"
-          }}>
-            <button
-              onClick={() => setActiveTab("description")}
+            alignItems: "center",
+            gap: "0.4rem",
+            fontSize: "0.82rem",
+            color: "var(--text-muted)",
+          }}
+        >
+          <Link
+            href="/problems"
+            style={{ color: "var(--text-muted)", transition: "color 0.15s" }}
+          >
+            ← All problems
+          </Link>
+          <span>/</span>
+          <span style={{ color: "var(--text-heading)", fontWeight: "500" }}>
+            {problem.title}
+          </span>
+        </div>
+
+        {/* Split layout */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            flex: 1,
+            overflow: "hidden",
+          }}
+        >
+          {/* LEFT: Problem description */}
+          <div
+            style={{
+              borderRight: "1px solid var(--border-soft)",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
+          >
+            {/* Tabs */}
+            <div
               style={{
-                flex: 1,
-                background: "none",
-                border: "none",
-                padding: "1rem",
-                color: activeTab === "description" ? "var(--primary)" : "var(--text-muted)",
-                fontWeight: activeTab === "description" ? "600" : "400",
-                borderBottom: activeTab === "description" ? "2.5px solid var(--primary)" : "none",
-                cursor: "pointer",
-                transition: "all 0.2s"
+                borderBottom: "1px solid var(--border-soft)",
+                display: "flex",
+                background: "var(--bg-surface)",
+                overflow: "auto",
               }}
             >
-              Problem Description
-            </button>
-            <button
-              onClick={() => setActiveTab("submissions")}
-              style={{
-                flex: 1,
-                background: "none",
-                border: "none",
-                padding: "1rem",
-                color: activeTab === "submissions" ? "var(--primary)" : "var(--text-muted)",
-                fontWeight: activeTab === "submissions" ? "600" : "400",
-                borderBottom: activeTab === "submissions" ? "2.5px solid var(--primary)" : "none",
-                cursor: "pointer",
-                transition: "all 0.2s"
-              }}
-            >
-              My Runs ({submissions.length})
-            </button>
-          </div>
+              {TABS.map((tab) => (
+                <button
+                  key={tab}
+                  className={`tab-btn ${activeTab === tab ? "active" : ""}`}
+                  onClick={() => setActiveTab(tab)}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
 
-          {/* Tab content inside a scrollable view */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem" }}>
-            {activeTab === "description" ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-                <div>
-                  <h2 style={{ fontSize: "1.75rem", fontWeight: "800", marginBottom: "0.5rem" }}>
-                    {problem.title}
-                  </h2>
-                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-                    <span className={`badge badge-${problem.difficulty.toLowerCase()}`}>
-                      {problem.difficulty}
-                    </span>
-                    {problem.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        style={{
-                          fontSize: "0.65rem",
-                          padding: "0.15rem 0.4rem",
-                          borderRadius: "4px",
-                          background: "rgba(255, 255, 255, 0.05)",
-                          color: "var(--text-muted)"
-                        }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
+            {/* Content */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem" }}>
+              {activeTab === "Description" && (
                 <div
                   style={{
-                    color: "rgba(255, 255, 255, 0.85)",
-                    fontSize: "0.95rem",
-                    lineHeight: "1.6",
-                    whiteSpace: "pre-wrap",
-                    borderTop: "1px solid rgba(255, 255, 255, 0.03)",
-                    paddingTop: "1rem"
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "1.25rem",
                   }}
                 >
-                  {problem.description}
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                {!user ? (
-                  <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>
-                    Please <Link href="/login" style={{ color: "var(--primary)", fontWeight: "600" }}>log in</Link> to view your submission records.
-                  </div>
-                ) : loadingSubmissions ? (
-                  <p style={{ color: "var(--text-muted)" }}>Loading records...</p>
-                ) : submissions.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)", fontSize: "0.9rem" }}>
-                    No solution history logged for this problem yet.
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                    {submissions.map((sub) => (
-                      <div
-                        key={sub.id}
-                        onClick={() => setSelectedSubCode(sub.code === selectedSubCode ? null : sub.code)}
-                        className="glass-card"
+                  {/* Title block */}
+                  <div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.6rem",
+                        marginBottom: "0.65rem",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span
+                        className={`badge badge-${problem.difficulty.toLowerCase()}`}
+                      >
+                        {problem.difficulty.charAt(0) +
+                          problem.difficulty.slice(1).toLowerCase()}
+                      </span>
+                      <span
                         style={{
-                          padding: "1rem",
-                          cursor: "pointer",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "0.5rem"
+                          fontSize: "0.78rem",
+                          color: "var(--text-muted)",
                         }}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span className={`badge ${getBadgeColorClass(sub.status)}`} style={{ padding: "0.2rem 0.5rem", fontSize: "0.7rem" }}>
+                        Acceptance 54.2%
+                      </span>
+                    </div>
+                    <h1
+                      style={{
+                        fontSize: "1.4rem",
+                        fontWeight: "700",
+                        color: "var(--text-heading)",
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {problem.title}
+                    </h1>
+                  </div>
+
+                  {/* Tags */}
+                  {problem.tags.length > 0 && (
+                    <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
+                      {problem.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          style={{
+                            fontSize: "0.68rem",
+                            padding: "0.2rem 0.55rem",
+                            borderRadius: "4px",
+                            background: "rgba(255,255,255,0.04)",
+                            border: "1px solid rgba(255,255,255,0.07)",
+                            color: "var(--text-muted)",
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Description body */}
+                  <div
+                    style={{
+                      fontSize: "0.9rem",
+                      lineHeight: 1.75,
+                      color: "var(--text-body)",
+                      borderTop: "1px solid var(--border-soft)",
+                      paddingTop: "1rem",
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
+                    {problem.description}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "Submissions" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  <h3
+                    style={{
+                      fontSize: "0.95rem",
+                      fontWeight: "600",
+                      color: "var(--text-heading)",
+                      marginBottom: "0.25rem",
+                    }}
+                  >
+                    My Submissions ({submissions.length})
+                  </h3>
+                  {!user ? (
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "2rem",
+                        color: "var(--text-muted)",
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      Please{" "}
+                      <Link
+                        href="/login"
+                        style={{
+                          color: "var(--primary)",
+                          fontWeight: "600",
+                        }}
+                      >
+                        log in
+                      </Link>{" "}
+                      to view your submissions.
+                    </div>
+                  ) : loadingSubmissions ? (
+                    <div className="spinner" style={{ margin: "2rem auto" }} />
+                  ) : submissions.length === 0 ? (
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "2rem",
+                        color: "var(--text-muted)",
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      No submissions yet for this problem.
+                    </div>
+                  ) : (
+                    submissions.map((sub) => (
+                      <div
+                        key={sub.id}
+                        onClick={() =>
+                          setSelectedSubCode(
+                            sub.code === selectedSubCode ? null : sub.code
+                          )
+                        }
+                        className="glass-card"
+                        style={{ padding: "0.9rem", cursor: "pointer" }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <span
+                            className={`badge ${getBadgeClass(sub.status)}`}
+                            style={{ fontSize: "0.65rem" }}
+                          >
                             {sub.status}
                           </span>
-                          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                            Language: {sub.language.toUpperCase()}
+                          <span
+                            style={{
+                              fontSize: "0.72rem",
+                              color: "var(--text-muted)",
+                              fontFamily: "var(--font-mono)",
+                            }}
+                          >
+                            {sub.language.toUpperCase()}
                           </span>
                         </div>
-                        <div style={{ fontSize: "0.72rem", color: "#6b7280", wordBreak: "break-all" }}>
-                          Ref ID: {sub.id}
+                        <div
+                          style={{
+                            fontSize: "0.68rem",
+                            color: "var(--text-dim)",
+                            marginTop: "0.25rem",
+                            wordBreak: "break-all",
+                          }}
+                        >
+                          {sub.id}
                         </div>
                         {selectedSubCode === sub.code && (
-                          <div style={{ marginTop: "0.5rem" }}>
-                            <pre style={{
-                              background: "rgba(0,0,0,0.4)",
-                              padding: "0.75rem",
-                              borderRadius: "4px",
-                              fontFamily: "var(--font-mono)",
-                              fontSize: "0.75rem",
-                              overflowX: "auto",
-                              color: "#10b981",
-                              borderLeft: "2px solid #10b981"
-                            }} onClick={(e) => e.stopPropagation()}>
+                          <div style={{ marginTop: "0.75rem" }}>
+                            <pre
+                              style={{
+                                background: "rgba(0,0,0,0.5)",
+                                border: "1px solid rgba(34,197,94,0.2)",
+                                borderLeft: "3px solid var(--easy)",
+                                padding: "0.75rem",
+                                borderRadius: "6px",
+                                fontFamily: "var(--font-mono)",
+                                fontSize: "0.72rem",
+                                color: "var(--easy)",
+                                overflowX: "auto",
+                                lineHeight: 1.6,
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               {sub.code}
                             </pre>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setCode(sub.code);
-                                setLanguage(sub.language === "py" ? "python" : "javascript");
+                                setLanguage(
+                                  sub.language === "py" ? "python" : "javascript"
+                                );
                               }}
                               className="btn btn-secondary"
-                              style={{ transform: "scale(0.95)", marginTop: "0.5rem", padding: "0.25rem 0.6rem", fontSize: "0.75rem" }}
+                              style={{
+                                marginTop: "0.5rem",
+                                padding: "0.25rem 0.65rem",
+                                fontSize: "0.72rem",
+                              }}
                             >
-                              Restore Code To Console
+                              Load into Editor
                             </button>
                           </div>
                         )}
                       </div>
-                    ))}
+                    ))
+                  )}
+                </div>
+              )}
+
+              {(activeTab === "Editorial" || activeTab === "Discussion") && (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "3rem",
+                    color: "var(--text-muted)",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  <div style={{ fontSize: "2rem", marginBottom: "0.75rem" }}>
+                    {activeTab === "Editorial" ? "📝" : "💬"}
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: CODING PLAYGROUND */}
-        <div className="glass-panel" style={{ display: "flex", flexDirection: "column", height: "700px" }}>
-          {/* Editor Header Toolbar */}
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "0.75rem 1.25rem",
-            borderBottom: "1px solid var(--border)",
-            background: "rgba(255, 255, 255, 0.01)"
-          }}>
-            <span style={{ fontWeight: "600", fontSize: "0.9rem", color: "var(--text-muted)" }}>
-              🔒 Interactive Playground
-            </span>
-
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-              <label style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Lang:</label>
-              <select
-                className="input-field"
-                value={language}
-                disabled={submitting}
-                onChange={(e) => setLanguage(e.target.value as any)}
-                style={{
-                  background: "#0F172A",
-                  padding: "0.25rem 0.5rem",
-                  fontSize: "0.8rem",
-                  width: "120px",
-                  cursor: "pointer"
-                }}
-              >
-                <option value="javascript">JavaScript (Node)</option>
-                <option value="python">Python 3</option>
-              </select>
+                  {activeTab === "Editorial"
+                    ? "Editorial will be available after the contest ends."
+                    : "Discussion threads coming soon."}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Editor Textarea */}
-          <div style={{ flex: 1, position: "relative" }}>
-            <textarea
-              className="input-field"
-              value={code}
-              disabled={submitting}
-              onChange={(e) => setCode(e.target.value)}
-              style={{
-                width: "100%",
-                height: "100%",
-                background: "#090d16",
-                fontFamily: "var(--font-mono)",
-                fontSize: "0.85rem",
-                color: "#10B981",
-                padding: "1.25rem",
-                border: "none",
-                borderRadius: 0,
-                resize: "none",
-                outline: "none",
-                lineHeight: "1.5"
-              }}
-            />
-          </div>
-
-          {/* Live submission Console Output status box */}
-          {submissionStatus && (
-            <div className="animate-fade-in" style={{
-              background: "#0F1626",
-              borderTop: "1px solid var(--border)",
-              padding: "1rem 1.5rem",
+          {/* RIGHT: Code editor */}
+          <div
+            style={{
               display: "flex",
               flexDirection: "column",
-              gap: "0.5rem"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "var(--text-muted)" }}>
-                  Console Outputs
-                </span>
-                <span className={`badge ${getBadgeColorClass(submissionStatus)}`} style={{ fontSize: "0.75rem", padding: "0.2rem 0.6rem" }}>
-                  {submissionStatus}
-                </span>
-              </div>
-              <div style={{
-                maxHeight: "100px",
-                overflowY: "auto",
-                background: "rgba(0, 0, 0, 0.3)",
-                padding: "0.5rem 0.75rem",
-                borderRadius: "4px",
-                fontFamily: "var(--font-mono)",
-                fontSize: "0.75rem",
-                color: "#ffffff"
-              }}>
-                {submissionProgressLog.map((log, idx) => (
-                  <div key={idx} style={{ marginBottom: "0.25rem" }}>
-                    &gt; {log}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Action Bar Footer */}
-          <div style={{
-            padding: "0.75rem 1.5rem",
-            borderTop: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "flex-end",
-            alignItems: "center"
-          }}>
-            <button
-              onClick={handleSubSubmit}
-              disabled={submitting}
-              className="btn btn-primary"
+              overflow: "hidden",
+              background: "var(--bg-surface)",
+            }}
+          >
+            {/* Editor toolbar */}
+            <div
               style={{
-                flex: "0 0 auto",
-                padding: "0.5rem 1.5rem"
+                height: "48px",
+                borderBottom: "1px solid var(--border-soft)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "0 1rem",
+                gap: "0.75rem",
+                flexShrink: 0,
+                background: "var(--bg-elevated)",
               }}
             >
-              {submitting ? "Analyzing..." : "Submit Solution"}
-            </button>
+              {/* Language selector */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  background: "var(--bg-card)",
+                  border: "1px solid var(--border-card)",
+                  borderRadius: "8px",
+                  padding: "0.25rem 0.4rem 0.25rem 0.65rem",
+                  fontSize: "0.82rem",
+                  color: "var(--text-heading)",
+                  fontWeight: "600",
+                }}
+              >
+                <span
+                  style={{
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                    background:
+                      language === "javascript" ? "#F0DB4F" : "#3776AB",
+                    flexShrink: 0,
+                  }}
+                />
+                <select
+                  value={language}
+                  disabled={submitting}
+                  onChange={(e) => setLanguage(e.target.value as any)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    outline: "none",
+                    color: "var(--text-heading)",
+                    fontSize: "0.82rem",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-body)",
+                    padding: "0",
+                    appearance: "none",
+                  }}
+                >
+                  <option value="javascript" style={{ background: "#111119" }}>
+                    JavaScript
+                  </option>
+                  <option value="python" style={{ background: "#111119" }}>
+                    Python
+                  </option>
+                </select>
+                <span style={{ color: "var(--text-dim)", fontSize: "0.7rem" }}>
+                  ▾
+                </span>
+              </div>
+
+              {/* Action buttons */}
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                  onClick={() => setShowConsole((p) => !p)}
+                  className="btn btn-ghost"
+                  style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                >
+                  ▶ Run
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="btn btn-primary"
+                  style={{ padding: "0.3rem 0.9rem", fontSize: "0.8rem" }}
+                >
+                  {submitting ? (
+                    <span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                      <div
+                        style={{
+                          width: "12px",
+                          height: "12px",
+                          borderRadius: "50%",
+                          border: "2px solid rgba(255,255,255,0.3)",
+                          borderTopColor: "#fff",
+                          animation: "spin 0.7s linear infinite",
+                        }}
+                      />
+                      Submitting...
+                    </span>
+                  ) : (
+                    "✦ Submit"
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Code textarea */}
+            <div
+              style={{ flex: 1, position: "relative", overflow: "hidden" }}
+            >
+              <textarea
+                value={code}
+                disabled={submitting}
+                onChange={(e) => setCode(e.target.value)}
+                spellCheck={false}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  background: "#09090F",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.85rem",
+                  color: "#A5B4FC",
+                  padding: "1.1rem 1.25rem",
+                  border: "none",
+                  outline: "none",
+                  resize: "none",
+                  lineHeight: 1.65,
+                  tabSize: 2,
+                }}
+              />
+            </div>
+
+            {/* Console / Test results panel */}
+            <div
+              style={{
+                borderTop: "1px solid var(--border-soft)",
+                background: "var(--bg-elevated)",
+                flexShrink: 0,
+              }}
+            >
+              {/* Console toggle tabs */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.15rem",
+                  padding: "0 0.75rem",
+                  borderBottom: showConsole
+                    ? "1px solid var(--border-soft)"
+                    : "none",
+                }}
+              >
+                <button
+                  className={`tab-btn ${showConsole ? "active" : ""}`}
+                  onClick={() => setShowConsole((p) => !p)}
+                  style={{ fontSize: "0.78rem", padding: "0.55rem 0.75rem" }}
+                >
+                  🖥 Test results
+                </button>
+                <button
+                  className="tab-btn"
+                  style={{
+                    fontSize: "0.78rem",
+                    padding: "0.55rem 0.75rem",
+                    color: "var(--text-dim)",
+                  }}
+                >
+                  ⏱ Console
+                </button>
+              </div>
+
+              {showConsole && (
+                <div style={{ padding: "0.75rem 1rem" }}>
+                  {submissionStatus ? (
+                    <>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "0.78rem",
+                            color: "var(--text-muted)",
+                          }}
+                        >
+                          Status
+                        </span>
+                        <span
+                          className={`badge ${getBadgeClass(submissionStatus)}`}
+                          style={{ fontSize: "0.65rem" }}
+                        >
+                          {submissionStatus}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          background: "rgba(0,0,0,0.35)",
+                          borderRadius: "6px",
+                          padding: "0.5rem 0.75rem",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "0.72rem",
+                          color: "rgba(255,255,255,0.6)",
+                          maxHeight: "100px",
+                          overflowY: "auto",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        {submissionProgressLog.map((log, idx) => (
+                          <div key={idx}>
+                            <span style={{ color: "var(--purple-3)" }}>›</span>{" "}
+                            {log}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <p
+                      style={{
+                        fontSize: "0.78rem",
+                        color: "var(--text-dim)",
+                        textAlign: "center",
+                        padding: "0.75rem 0",
+                      }}
+                    >
+                      Click Run to execute the sample tests.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {!showConsole && (
+                <p
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--text-dim)",
+                    padding: "0.6rem 1rem",
+                  }}
+                >
+                  Click Run to execute the sample tests.
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
       </div>
     </RequireAuth>
   );

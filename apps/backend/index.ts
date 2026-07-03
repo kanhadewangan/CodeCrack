@@ -7,6 +7,7 @@ import { prisma } from "@repo/db";
 import streaksRoute from "./code-submisson/streaks.ts";
 import cors from "cors";
 import { type Request, type Response } from "express";
+import contestRoute from "./contest/index.ts";
 const app = express();
 
 
@@ -23,8 +24,9 @@ app.use("/auth", route);
 app.use("/problems", problemsRoute);
 app.use("/streaks", authMiddleware, streaksRoute);
 app.use("/api", authMiddleware, submissionsRoute);
+app.use("/contest", authMiddleware, contestRoute);
 
-app.get("/leaderboard", async (req: Request, res: Response) => {
+app.get("/leaderboard", async (_req: Request, res: Response) => {
   try {
     const list = await prisma.leaderboard.findMany({
       orderBy: {
@@ -49,6 +51,8 @@ app.get("/leaderboard", async (req: Request, res: Response) => {
       problemsSolved: item.users.userStat[0]?.problemsSolved || 0,
       totalSubmissions: item.users.userStat[0]?.totalSubmissions || 0
     }));
+
+
     
     res.status(200).json(formatted);
   } catch (error) {
@@ -57,4 +61,23 @@ app.get("/leaderboard", async (req: Request, res: Response) => {
   }
 });
 
-export default app;
+    app.get('/contest_update', async (_req: Request, res: Response) => {
+      try {
+        const contests = await prisma.contest.findMany({
+          orderBy: {
+            startTime: 'desc'
+          }
+        });
+        if(contests.length === 0){
+          res.json({message: "No contests found"});
+        }
+        res.status(200).json({ message: "Contests retrieved successfully", contests: contests });
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+        });
+    
+app.listen(3001, () => {
+  console.log("Server is running on port 3000");
+});
