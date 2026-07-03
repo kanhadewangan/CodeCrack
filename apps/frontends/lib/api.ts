@@ -1,4 +1,4 @@
-const API_BASE = "https://code-crack-backend-9dgt.vercel.app/";
+const API_BASE = "https://code-crack-backend-9dgt-dl48ujd47-kanhadewangans-projects.vercel.app/";
 
 function getAuthHeaders(): HeadersInit {
   if (typeof window === "undefined") return {};
