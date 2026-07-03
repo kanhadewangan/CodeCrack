@@ -54,7 +54,7 @@ router.get("/problems/:id", async (req: Request, res: Response) => {
 
 router.post("/problems", async (req: Request, res: Response) => {
     try {
-        const { title, description, difficulty, testCases, tags } = req.body;
+        const { title, description, difficulty, testCases, tags, hints } = req.body;
         const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Date.now().toString().slice(-4);
         
         const problem = await prisma.problems.create({
@@ -66,6 +66,10 @@ router.post("/problems", async (req: Request, res: Response) => {
                 tags: tags || [],
                 testCases: {
                     create: testCases || []
+                },
+                hints:{
+                    create: hints || []
+
                 }
             }
         });
