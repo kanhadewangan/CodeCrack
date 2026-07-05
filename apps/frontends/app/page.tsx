@@ -91,7 +91,7 @@ export default function Home() {
               ]);
 
             if (streakResult.status === "fulfilled") {
-              setStreakCount(streakResult.value?.streak || 0);
+              setStreakCount(streakResult.value.streaks || 0);
             }
             if (contributionResult.status === "fulfilled") {
               setContributions(
