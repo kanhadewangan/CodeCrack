@@ -66,8 +66,17 @@ route.get("/me", async (req: Request, res: Response) => {
                 id: true,
                 email: true,
                 createdAt: true,
-                submissions: true,
-                userStat: true
+                userStat: true,
+                submissions: {
+                        select: {
+                            id: true,
+                            problemId: true,
+                            status: true,
+                            createdAt: true,
+                        },
+                        orderBy: { createdAt: "desc" },
+                        take: 10, 
+              },
             }
         })
         res.status(200).json(user);

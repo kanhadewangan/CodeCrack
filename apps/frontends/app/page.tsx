@@ -120,6 +120,9 @@ export default function Home() {
             console.error("Could not load dashboard user data", err);
           }
         }
+        else {
+         setLoading(false);
+        }
       } catch (err) {
         console.error("Failed to load dashboard data", err);
       } finally {
@@ -195,267 +198,82 @@ export default function Home() {
     return "rgba(192,132,252,0.9)";
   };
 
+
   const username = user?.email?.split("@")[0] || "";
 
-  // Landing page for unauthenticated users
-  if (!user) {
-    return (
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        {/* Hero */}
-        <section
+
+  if(loading) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column" }}>
+      {/* Hero skeleton */}
+      <section
+        style={{
+          minHeight: "88vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          padding: "4rem 2rem",
+        }}
+      >
+        <div className="skeleton-block" style={{ width: "280px", height: "32px", borderRadius: "999px", marginBottom: "2.5rem" }} />
+
+        <div className="skeleton-block" style={{ width: "min(700px, 80vw)", height: "3.2rem", borderRadius: "8px", marginBottom: "1rem" }} />
+        <div className="skeleton-block" style={{ width: "min(500px, 60vw)", height: "3.2rem", borderRadius: "8px", marginBottom: "1.5rem" }} />
+
+        <div className="skeleton-block" style={{ width: "min(560px, 85vw)", height: "1.2rem", borderRadius: "6px", marginBottom: "0.6rem" }} />
+        <div className="skeleton-block" style={{ width: "min(460px, 70vw)", height: "1.2rem", borderRadius: "6px", marginBottom: "2.5rem" }} />
+
+        <div style={{ display: "flex", gap: "1rem", marginBottom: "3rem" }}>
+          <div className="skeleton-block" style={{ width: "170px", height: "48px", borderRadius: "var(--radius-md, 8px)" }} />
+          <div className="skeleton-block" style={{ width: "150px", height: "48px", borderRadius: "var(--radius-md, 8px)" }} />
+        </div>
+
+        <div style={{ display: "flex", gap: "2rem", alignItems: "center" }}>
+          <div className="skeleton-block" style={{ width: "140px", height: "16px", borderRadius: "4px" }} />
+          <div className="skeleton-block" style={{ width: "180px", height: "16px", borderRadius: "4px" }} />
+        </div>
+      </section>
+
+      {/* Features skeleton */}
+      <section
+        style={{
+          maxWidth: "1280px",
+          margin: "0 auto",
+          padding: "4rem 2rem 6rem",
+          width: "100%",
+        }}
+      >
+        <div className="skeleton-block" style={{ width: "160px", height: "14px", borderRadius: "4px", marginBottom: "0.75rem" }} />
+        <div className="skeleton-block" style={{ width: "min(480px, 70vw)", height: "2.4rem", borderRadius: "8px", marginBottom: "3rem" }} />
+
+        <div
           style={{
-            minHeight: "88vh",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-            padding: "4rem 2rem",
-            position: "relative",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: "1px",
+            background: "var(--border-card)",
+            border: "1px solid var(--border-card)",
+            borderRadius: "var(--radius-xl)",
             overflow: "hidden",
           }}
         >
-          {/* background orbs */}
-          <div
-            style={{
-              position: "absolute",
-              top: "20%",
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: "600px",
-              height: "600px",
-              background:
-                "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)",
-              pointerEvents: "none",
-              filter: "blur(60px)",
-            }}
-          />
-
-          <div
-            className="alert-banner animate-fade-in"
-            style={{ marginBottom: "2.5rem" }}
-          >
-            <span>✨</span>
-            <span>Winter contest starts Feb 22 — join 12k+ registered</span>
-          </div>
-
-          <h1
-            className="animate-fade-in"
-            style={{
-              fontSize: "clamp(2.8rem, 6vw, 5rem)",
-              fontWeight: "800",
-              lineHeight: 1.1,
-              color: "var(--text-heading)",
-              marginBottom: "1.5rem",
-              animationDelay: "60ms",
-            }}
-          >
-            Crack the interview.
-            <br />
-            Not your{" "}
-            <span className="gradient-text">confidence.</span>
-          </h1>
-
-          <p
-            className="animate-fade-in"
-            style={{
-              fontSize: "1.1rem",
-              color: "var(--text-muted)",
-              maxWidth: "560px",
-              lineHeight: 1.7,
-              marginBottom: "2.5rem",
-              animationDelay: "120ms",
-            }}
-          >
-            The most focused way to practice coding interviews. Real questions
-            from real companies, ruthless feedback, and a community that grinds
-            with you.
-          </p>
-
-          <div
-            className="animate-fade-in"
-            style={{
-              display: "flex",
-              gap: "1rem",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              marginBottom: "3rem",
-              animationDelay: "180ms",
-            }}
-          >
-            <Link href="/register" className="btn btn-cta">
-              Start solving free →
-            </Link>
-            <Link
-              href="/problems"
-              className="btn"
-              style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid var(--border-soft)",
-                color: "var(--text-heading)",
-                padding: "0.8rem 1.75rem",
-                fontSize: "1rem",
-                borderRadius: "var(--radius-md)",
-              }}
-            >
-              Browse problems
-            </Link>
-          </div>
-
-          {/* Social proof */}
-          <div
-            className="animate-fade-in"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "2rem",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              animationDelay: "240ms",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.4rem",
-                fontSize: "0.85rem",
-                color: "var(--text-muted)",
-              }}
-            >
-              <span style={{ color: "#EAB308" }}>★★★★★</span>
-              <span style={{ color: "var(--text-heading)", fontWeight: "600" }}>4.9/5</span>
-              <span>from 8,200+ reviews</span>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="feature-card" style={{ borderRadius: 0, border: "none" }}>
+              <div className="skeleton-block" style={{ width: "32px", height: "32px", borderRadius: "8px", marginBottom: "0.75rem" }} />
+              <div className="skeleton-block" style={{ width: "60%", height: "16px", borderRadius: "4px", marginBottom: "0.5rem" }} />
+              <div className="skeleton-block" style={{ width: "90%", height: "14px", borderRadius: "4px", marginBottom: "0.35rem" }} />
+              <div className="skeleton-block" style={{ width: "75%", height: "14px", borderRadius: "4px" }} />
             </div>
-            <div
-              style={{
-                width: "1px",
-                height: "16px",
-                background: "var(--border-soft)",
-              }}
-            />
-            <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
-              <span style={{ color: "var(--text-heading)", fontWeight: "600" }}>50,000+</span>{" "}
-              developers practicing
-            </span>
-            <div
-              style={{
-                display: "flex",
-                gap: "1rem",
-                fontSize: "0.72rem",
-                fontWeight: "700",
-                letterSpacing: "0.1em",
-                color: "var(--text-dim)",
-              }}
-            >
-              {["GOOGLE", "META", "AMAZON", "STRIPE", "AIRBNB"].map((c) => (
-                <span key={c}>{c}</span>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Features section */}
-        <section
-          style={{
-            maxWidth: "1280px",
-            margin: "0 auto",
-            padding: "4rem 2rem 6rem",
-            width: "100%",
-          }}
-        >
-          <div style={{ marginBottom: "3rem" }}>
-            <p className="section-label" style={{ marginBottom: "0.75rem" }}>
-              EVERYTHING YOU NEED
-            </p>
-            <h2
-              style={{
-                fontSize: "clamp(1.8rem, 3.5vw, 2.75rem)",
-                fontWeight: "800",
-                maxWidth: "480px",
-                lineHeight: 1.2,
-              }}
-            >
-              Practice like it&apos;s the real thing.
-            </h2>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-              gap: "1px",
-              background: "var(--border-card)",
-              border: "1px solid var(--border-card)",
-              borderRadius: "var(--radius-xl)",
-              overflow: "hidden",
-            }}
-          >
-            {[
-              {
-                icon: "</>",
-                title: "Problem Library",
-                desc: "3,200+ curated problems with hints, editorial solutions, and tagged difficulty.",
-              },
-              {
-                icon: "🏆",
-                title: "Weekly Contests",
-                desc: "Compete every Saturday. Live rankings, rating updates, and prizes.",
-              },
-              {
-                icon: "👥",
-                title: "Mock Interviews",
-                desc: "Timed 1-on-1 simulations that mirror the real onsite pressure.",
-              },
-              {
-                icon: "💬",
-                title: "Discussions",
-                desc: "Read approaches from top-rated engineers. Ask questions, share solutions.",
-              },
-              {
-                icon: "📊",
-                title: "Analytics",
-                desc: "Track streaks, weak topics, and time-to-solve trends over months.",
-              },
-              {
-                icon: "🏢",
-                title: "Company Questions",
-                desc: "Real questions asked at Google, Meta, Stripe, Airbnb, and 200+ others.",
-              },
-            ].map((feat, i) => (
-              <div
-                key={i}
-                className="feature-card"
-                style={{ borderRadius: 0, border: "none" }}
-              >
-                <div className="feature-icon" style={{ fontSize: "1.1rem" }}>
-                  {feat.icon}
-                </div>
-                <h3
-                  style={{
-                    fontSize: "1rem",
-                    fontWeight: "600",
-                    color: "var(--text-heading)",
-                  }}
-                >
-                  {feat.title}
-                </h3>
-                <p
-                  style={{
-                    fontSize: "0.85rem",
-                    color: "var(--text-muted)",
-                    lineHeight: 1.6,
-                  }}
-                >
-                  {feat.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-    );
-  }
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+ 
+ 
 
   // Authenticated Dashboard
   return (
