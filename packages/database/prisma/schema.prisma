@@ -19,6 +19,8 @@ model user {
   leaderboard leaderboard[]
   contribution contribution[]
   rewards rewards[]
+  contestParticipants contestParticipants[]
+  contestRewards contestRewards[]
 }
 
 model userStat{
@@ -140,6 +142,8 @@ model contest {
   createdAt DateTime @default(now())
   contestProblems contestProblems[]
   contestLeaderboard leaderboardContest[]
+  contestParticipants contestParticipants[]
+  contestRewards contestRewards[]
 }
 
 model contestProblems {
@@ -151,6 +155,15 @@ model contestProblems {
   problems problems @relation(fields: [problemId], references: [id])
   @@index([contestId,problemId])
 }
+
+model contestParticipants{
+  id String @id @default(cuid())
+  contestId String
+  userId String
+  createdAt DateTime @default(now())
+  contests contest @relation(fields: [contestId], references: [id])
+  users user @relation(fields: [userId], references: [id])
+}
 model leaderboardContest{
   id String @id @default(cuid())
   contestId String  
@@ -160,6 +173,19 @@ model leaderboardContest{
   contests contest @relation(fields: [contestId], references: [id])
   @@index([contestId,userId])
 }
+
+
+ model contestRewards{
+  id String @id @default(cuid())
+  contestId String  
+  userId String
+  rewardType rewardType
+  rewardValue String
+  createdAt DateTime @default(now())
+  contests contest @relation(fields: [contestId], references: [id])
+  users user @relation(fields: [userId], references: [id])
+  @@index([contestId,userId])
+ }
 
 enum rewardType {
   BADGE

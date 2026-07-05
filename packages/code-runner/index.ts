@@ -25,7 +25,7 @@ type SubmissionResult = {
 
 async function startWorker() {
   await consumeFromQueue(queueName, async (message) => {
-    console.log(`Received message from queue ${queueName}: ${message}`);
+
 
     let parsedMessage: SubmissionMessage;
     try {
@@ -68,7 +68,7 @@ const getTestCasesForProblem = async (problemId: string): Promise<TestCase[]> =>
 
 const updateSubmissionStatus = async (submissionId: string, result: SubmissionResult) => {
   const status = result.success ? "ACCEPTED" : "WRONG_ANSWER";
-  console.log("Updating submission status:", submissionId, status);
+  // console.log("Updating submission status:", submissionId, status);
   
   // 1. Update the submission status
   const updatedSubmission = await prisma.submissions.update({
@@ -198,6 +198,7 @@ async function runSubmission(code: string, language: string, testCases: TestCase
     ])) as { StatusCode?: number };
 
     const logs = await container.logs({ stdout: true, stderr: true });
+    console.log("Container logs:", logs.toString("utf8"));
     return parseOutput(logs, waitResult.StatusCode ?? 1);
   } catch (error) {
     await container.kill().catch(() => {
@@ -218,43 +219,46 @@ async function runSubmission(code: string, language: string, testCases: TestCase
 }
 
 async function ensureImageAvailable(image: string): Promise<void> {
-  try {
-    await docker.getImage(image).inspect();
-    return;
-  } catch {
-    console.log(`Docker image ${image} not found locally. Pulling...`);
-  }
-
-  const stream = await docker.pull(image);
-
-  await new Promise<void>((resolve, reject) => {
-    docker.modem.followProgress(
-      stream,
-      (err: Error | null) => {
+  const imageHarness = await docker.listImages({
+    filters: { reference: [image] },
+  });
+  if(imageHarness.length === 0) {
+    await new Promise<void>((resolve, reject) => {
+      docker.pull(image, (err: any, stream: any) => {
         if (err) {
           reject(err);
           return;
         }
-        resolve();
-      },
-      () => {
-        // Ignore progress events.
-      },
-    );
-  });
-}
+        docker.modem.followProgress(
+          stream,(err:any) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve();
+          },
+          () => {
+            // Ignore progress events.
+          },
+        );
+      });
+    })
+  }
+  }
+
+ 
+
+const LANGUAGE_IMAGES: Record<string, string> = {
+  javascript: "node:20-alpine",
+  js: "node:20-alpine",
+  python: "python:3.11-alpine",
+  py: "python:3.11-alpine",
+};
 
 function imageForLanguage(language: string): string {
-  switch (language.toLowerCase()) {
-    case "javascript":
-    case "js":
-      return "node:20-alpine";
-    case "python":
-    case "py":
-      return "python:3.11-alpine";
-    default:
-      throw new Error(`Unsupported language: ${language}`);
-  }
+  const image = LANGUAGE_IMAGES[language.toLowerCase()];
+  if (!image) throw new Error(`Unsupported language: ${language}`);
+  return image;
 }
 
 function runCommandFor(language: string): string[] {
@@ -266,13 +270,14 @@ function runCommandFor(language: string): string[] {
         "-lc",
         "printf '%s' \"$SUBMISSION_CODE_B64\" | base64 -d > /tmp/solution.js && node /tmp/solution.js",
       ];
-    case "python":
-    case "py":
-      return [
-        "sh",
-        "-lc",
-        "printf '%s' \"$SUBMISSION_CODE_B64\" | base64 -d > /tmp/solution.py && python /tmp/solution.py",
-      ];
+      case "python":
+      case "py":
+    return [
+      "sh", "-c",
+      "TMPFILE=$(mktemp /tmp/solution_XXXXXX) && " +
+  "printf '%s' \"$SUBMISSION_CODE_B64\" | base64 -d > \"$TMPFILE\" && " +
+    "(command -v python3 >/dev/null 2>&1 && python3 \"$TMPFILE\" || python \"$TMPFILE\")"
+    ];
     default:
       throw new Error(`Unsupported language: ${language}`);
   }

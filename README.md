@@ -6,7 +6,8 @@ Built as a Turborepo monorepo with Bun.
 
 ## Architecture
 
-```mermaid
+```mermaidr
+
 flowchart TB
     subgraph Client["Client"]
         FE["Next.js Frontend<br/>(apps/frontends)"]
