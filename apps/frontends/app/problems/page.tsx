@@ -68,22 +68,128 @@ export default function ProblemsPage() {
   const mediumCount = problems.filter((p) => p.difficulty === "MEDIUM").length;
   const hardCount = problems.filter((p) => p.difficulty === "HARD").length;
 
-  if (loading) {
-    return (
-      <RequireAuth>
+ if (loading) {
+  return (
+    <RequireAuth>
+      <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "2rem" }}>
+        {/* Search + filter bar skeleton */}
         <div
           style={{
             display: "flex",
-            justifyContent: "center",
+            gap: "1rem",
             alignItems: "center",
-            minHeight: "60vh",
+            marginBottom: "1.5rem",
           }}
         >
-          <div className="spinner" />
+          <div
+            className="skeleton-block"
+            style={{ flex: 1, height: "44px", borderRadius: "10px" }}
+          />
+          <div
+            className="skeleton-block"
+            style={{ width: "260px", height: "44px", borderRadius: "10px" }}
+          />
         </div>
-      </RequireAuth>
-    );
-  }
+
+        {/* Table skeleton */}
+        <div
+          style={{
+            background: "var(--bg-card, #14121c)",
+            border: "1px solid var(--border-card)",
+            borderRadius: "var(--radius-xl, 16px)",
+            overflow: "hidden",
+          }}
+        >
+          {/* Header row */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "80px 1fr 120px 260px 100px",
+              padding: "1rem 1.5rem",
+              borderBottom: "1px solid var(--border-card)",
+            }}
+          >
+            {["STATUS", "TITLE", "DIFFICULTY", "TOPICS", "ACTION"].map((label) => (
+              <span
+                key={label}
+                style={{
+                  fontSize: "0.7rem",
+                  letterSpacing: "0.08em",
+                  color: "var(--text-dim, #6b6b7a)",
+                }}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+
+          {/* Skeleton rows */}
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "80px 1fr 120px 260px 100px",
+                alignItems: "center",
+                padding: "1.1rem 1.5rem",
+                borderBottom:
+                  i < 7 ? "1px solid var(--border-card)" : "none",
+              }}
+            >
+              {/* status circle */}
+              <div
+                className="skeleton-block"
+                style={{ width: "18px", height: "18px", borderRadius: "50%" }}
+              />
+
+              {/* title */}
+              <div
+                className="skeleton-block"
+                style={{
+                  width: `${55 + ((i * 13) % 30)}%`,
+                  height: "14px",
+                  borderRadius: "4px",
+                }}
+              />
+
+              {/* difficulty pill */}
+              <div
+                className="skeleton-block"
+                style={{ width: "64px", height: "22px", borderRadius: "999px" }}
+              />
+
+              {/* topic tags */}
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <div className="skeleton-block" style={{ width: "50px", height: "22px", borderRadius: "6px" }} />
+                <div className="skeleton-block" style={{ width: "70px", height: "22px", borderRadius: "6px" }} />
+                {i % 2 === 0 && (
+                  <div className="skeleton-block" style={{ width: "60px", height: "22px", borderRadius: "6px" }} />
+                )}
+              </div>
+
+              {/* action button */}
+              <div
+                className="skeleton-block"
+                style={{ width: "70px", height: "32px", borderRadius: "999px", justifySelf: "start" }}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* footer count skeleton */}
+        <div
+          className="skeleton-block"
+          style={{
+            width: "140px",
+            height: "14px",
+            borderRadius: "4px",
+            margin: "1.5rem auto 0",
+          }}
+        />
+      </div>
+    </RequireAuth>
+  );
+}
 
   return (
     <RequireAuth>

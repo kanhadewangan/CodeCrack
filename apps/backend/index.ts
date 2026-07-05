@@ -14,7 +14,6 @@ const app = express();
 
 app.use(express.json());
 
-// Enable CORS
 app.use(cors({
   origin: "*", // Allow all origins
   methods: ["GET", "POST", "PUT", "DELETE"], // Allow specific HTTP methods
@@ -61,6 +60,8 @@ app.get("/leaderboard", async (_req: Request, res: Response) => {
   }
 });
 
+
+
     app.get('/contest_update', async (_req: Request, res: Response) => {
       try {
         const contests = await prisma.contest.findMany({
@@ -79,5 +80,5 @@ app.get("/leaderboard", async (_req: Request, res: Response) => {
         });
     
 app.listen(3001, () => {
-  console.log("Server is running on port 3000");
+  console.log("Server is running on port 3001");
 });
