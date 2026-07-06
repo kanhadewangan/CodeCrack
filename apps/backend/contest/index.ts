@@ -1,24 +1,34 @@
 import express , {type Request, type Response} from "express";
 import {prisma} from "@repo/db";
+import auth from "../auth";
+import { authMiddleware } from "../auth/middleware";
 const route = express.Router();
 
 
             route.post('/create-contest', async(req: Request, res: Response)=>{
-                const {name, description, startDate, endDate} = req.body;
+                const {name, description, startTime, endTime} = req.body;
                 try{
+                    console.log("Creating contest with data:", {name, description, startTime    , endTime});
                     const contest = await prisma.contest.create({
                         data: {
                             name,
                             description,
-                            startDate: new Date(startDate) as Date,
-                            endDate: new Date(endDate) as Date
+                            startTime: new Date(Date.now()),
+                            endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default to one week from now,
+                            contestParticipants: {
+                                create: [] // Initialize with an empty array of participants
+                            },
+                            contestProblems: {
+                                create: [] // Initialize with an empty array of problems
+
+                            }
                         },
                         select: {
                             id: true,
                             name: true,
                             description: true,
-                            startDate: true,
-                            endDate: true
+                            startTime: true,
+                            endTime: true
                         }
                     });
                     res.status(201).json({"message": "Contest created successfully", contest});
@@ -39,10 +49,8 @@ const route = express.Router();
                 res.status(500).json({error: "Internal Server Error"});
             }
         })
-
-
-
-        route.post("/join-contest",async (req:Request, res: Response)=>{
+     
+        route.post("/join-contest",authMiddleware,async (req:Request, res: Response)=>{
         try{  const {contestId, userId} = req.body;
             const joinContest = await prisma.contestParticipants.create({
                 data: {
@@ -82,7 +90,6 @@ const route = express.Router();
                 res.status(500).json({error: "Internal Server Error"});
             }
         })
-          
-
+        
         const contestRoute = route;
 export default contestRoute;

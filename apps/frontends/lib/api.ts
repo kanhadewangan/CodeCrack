@@ -66,3 +66,13 @@ export const streaksApi = {
   get: () => apiRequest("/streaks/streaks"),
   getContributions: () => apiRequest("/streaks/contributions"),
 };
+
+
+// contest APIs
+
+export const contestApi = {
+  getContests: () => apiRequest("/contest/get-contests"),
+  createContest: (body: any) => apiRequest("/contest/create-contest", { method: "POST", body: JSON.stringify(body) }),
+  joinContest: (body: any) => apiRequest("/contest/join-contest", { method: "POST", body: JSON.stringify(body) }),
+  getContestParticipants: (contestId: string) => apiRequest(`/contest/get-contest-participants/${contestId}`),
+}

@@ -23,7 +23,7 @@ app.use("/auth", route);
 app.use("/problems", problemsRoute);
 app.use("/streaks", authMiddleware, streaksRoute);
 app.use("/api", authMiddleware, submissionsRoute);
-app.use("/contest", authMiddleware, contestRoute);
+app.use("/contest", contestRoute);
 
 app.get("/leaderboard", async (_req: Request, res: Response) => {
   try {
