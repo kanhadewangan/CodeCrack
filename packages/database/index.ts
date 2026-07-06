@@ -1,11 +1,15 @@
 import { PrismaClient } from "./generated/prisma/client";
+import fs from "fs";
+import path from "path";
 import { PrismaPg } from "@prisma/adapter-pg";
 import "dotenv/config";
 
 
 console.log("DATABASE_URL", process.env.DATABASE_URL);
+const caPath =  path.join(import.meta.dirname, "ca-certificate.crt");
 const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL
+  connectionString: process.env.DATABASE_URL,
+
 });
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
