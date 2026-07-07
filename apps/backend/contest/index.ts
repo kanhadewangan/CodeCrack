@@ -51,15 +51,14 @@ const route = express.Router();
         })
      
         route.post("/join-contest",authMiddleware,async (req:Request, res: Response)=>{
-        try{  const {contestId, userId} = req.body;
+        try{  const {contestId} = req.body;
             const joinContest = await prisma.contestParticipants.create({
                 data: {
                     contestId,
-                    userId
+                    userId: req.user?.id
                 }
             });
-            res.status(200).json({"message": "Joined contest successfully", joinContest
-            })
+            res.status(200).json({"message": "Joined contest successfully", joinContest})
         }
         catch(err){
             console.log(err);
@@ -90,6 +89,172 @@ const route = express.Router();
                 res.status(500).json({error: "Internal Server Error"});
             }
         })
+
+
+        route.get('/joined-contests', authMiddleware, async(req: Request, res: Response)=>{
+            try{
+                const userId = req.user?.id;
+                if(!userId){
+                    return res.status(400).json({error: "User not authenticated"});
+                }
+                const joinedContests = await prisma.contestParticipants.findMany({
+                    where: {
+                        userId: userId
+                    },
+                    include: {
+                        contests: true
+                    }
+                });
+                res.status(200).json({"message": "Joined contests retrieved successfully", joinedContests});
+            }
+            catch(err){
+                console.error(err);
+                res.status(500).json({error: "Internal Server Error"});
+            }   
+        })
+
+
+        route.post('/add-problem', async(req: Request, res: Response)=>{
+            const {contestId, problemId} = req.body;
+            try{
+                const addProblem = await prisma.contestProblems.create({
+                    data: {
+                        contestId,
+                        problemId
+                    }
+                });
+                res.status(200).json({"message": "Problem added to contest successfully", addProblem});
+            }
+            catch(err){
+                console.error(err);
+                res.status(500).json({error: "Internal Server Error"});
+            }
+        })
+
+
+        route.get('/get-contest-problems/:contestId', async(req: Request, res: Response)=>{
+            const {contestId} = req.params;
+            try{
+                const contestProblems = await prisma.contestProblems.findMany({
+                    where: {
+                        contestId: contestId as string
+                    },
+                    include: {
+                        problems: true
+                    }
+                });
+                res.status(200).json({"message": "Contest problems retrieved successfully", contestProblems});
+            }
+            catch(err){
+                console.error(err);
+                res.status(500).json({error: "Internal Server Error"});
+            }
+        })
+
+        route.post('/remove-problem', async(req: Request, res: Response)=>{
+            const {contestId, problemId} = req.body;
+            try{
+                const removeProblem = await prisma.contestProblems.deleteMany({
+                    where: {
+                        contestId,
+                        problemId
+                    }
+                });
+                res.status(200).json({"message": "Problem removed from contest successfully", removeProblem});
+            }
+            catch(err){
+                console.error(err);
+                res.status(500).json({error: "Internal Server Error"});
+            }
+        })
+
+        route.delete('/delete-contest/:contestId', async(req: Request, res: Response)=>{
+            const {contestId} = req.params;
+            try{
+                const deleteContest = await prisma.contest.delete({
+                    where: {
+                        id: contestId as string
+                    }
+                });
+                res.status(200).json({"message": "Contest deleted successfully", deleteContest});
+            }
+            catch(err){
+                console.error(err);
+                res.status(500).json({error: "Internal Server Error"});
+            }
+        })
         
+        route.post('/update-contest', async(req: Request, res: Response)=>{
+            const {contestId, name, description, startTime, endTime} = req.body;
+            try{
+                const updateContest = await prisma.contest.update({
+                    where: {
+                        id: contestId
+                    },
+                    data: {
+                        name,
+                        description,
+                        startTime: new Date(startTime),
+                        endTime: new Date(endTime)
+                    }
+                });
+                res.status(200).json({"message": "Contest updated successfully", updateContest});
+            }
+            catch(err){
+                console.error(err);
+                res.status(500).json({error: "Internal Server Error"});
+            }
+        })
+
+        route.post('/leave-contest',(req: Request, res: Response)=>{
+            const {contestId, userId} = req.body;
+            try{
+                const leaveContest = prisma.contestParticipants.deleteMany({
+                    where: {
+                        contestId,
+                        userId
+                    }
+                });
+                res.status(200).json({"message": "Left contest successfully", leaveContest});
+            }
+            catch(err){
+                console.error(err);
+                res.status(500).json({error: "Internal Server Error"});
+            }
+        })
+
+        route.get('/get-contest-details/:contestId', async(req: Request, res: Response)=>{
+            const {contestId} = req.params;
+            try{
+                const contest = await prisma.contest.findUnique({
+                    where: {
+                        id: contestId as string
+                    }
+                });
+                res.status(200).json({"message": "Contest retrieved successfully", contest});
+            }
+            catch(err){
+                console.error(err);
+                res.status(500).json({error: "Internal Server Error"});
+            }
+        })
+
+        route.get('/get-contest-by-name/:name', async(req: Request, res: Response)=>{
+            const {name} = req.params;
+            try{
+                const contest = await prisma.contest.findFirst({
+                    where: {
+                        name: name as string
+                    }
+                });
+                res.status(200).json({"message": "Contest retrieved successfully", contest});
+            }
+            catch(err){
+                console.error(err);
+                res.status(500).json({error: "Internal Server Error"});
+            }
+        })
+
+
         const contestRoute = route;
-export default contestRoute;
+        export default contestRoute;

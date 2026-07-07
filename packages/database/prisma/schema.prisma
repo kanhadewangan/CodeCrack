@@ -6,6 +6,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  
 }
 
 
@@ -21,6 +22,7 @@ model user {
   rewards rewards[]
   contestParticipants contestParticipants[]
   contestRewards contestRewards[]
+  streak streak[]
 }
 
 model userStat{
@@ -31,6 +33,14 @@ model userStat{
   rating Int @default(200)
   createdAt DateTime @default(now())
   users user @relation(fields: [userId], references: [id])
+}
+model streak {
+  id      String   @id @default(cuid())
+  userId   String
+  date     DateTime
+  createdAt DateTime @default(now())
+  users user @relation(fields: [userId], references: [id])
+  @@index([userId,date])
 }
 
 enum difficulty {
