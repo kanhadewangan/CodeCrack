@@ -51,10 +51,6 @@ router.post("/submission", async (req: Request, res: Response) => {
    
    try {
     const {  problemId, code, language } = req.body;
-
-    // add validation for userId, problemId, code, and language here
-    // check if the any occur in code execution and return error if so
-    // tle if it take more than 5 seconds to execute the code and return error if so
     const submissionPromise = await new  Promise(async (resolve)=>{
         const submission = await prisma.submissions.create({
             data: {
@@ -78,6 +74,13 @@ router.post("/submission", async (req: Request, res: Response) => {
                 problemId: problemId,
             },
         })
+        await prisma.streak.create({
+            data: {
+                userId: (req as any).user.id,
+                date: new Date(),
+            },
+        })  
+
         console.log("submission", submission)
        const message = {
         submissionId: submission.id,
@@ -85,9 +88,7 @@ router.post("/submission", async (req: Request, res: Response) => {
         code: submission.code,
         language: submission.language,
        }
-         await publishToQueue("submission_queue", JSON.stringify(message));
-         
-         
+         await publishToQueue("submission_queue", JSON.stringify(message));         
          resolve(submission.id)
 
     })
@@ -99,9 +100,7 @@ router.post("/submission", async (req: Request, res: Response) => {
     catch (error) {
         console.log("Error creating submission:", error);
     }
-
-        
-    
+            
 })
 
 

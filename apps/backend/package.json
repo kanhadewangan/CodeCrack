@@ -7,6 +7,10 @@
     "@types/bun": "latest",
     "@types/node": "^26.1.0"
   },
+  "scripts": {
+    "build": "bun build ./index.ts --outdir dist --target=bun",
+    "start": "bun run dist/index.js"
+  },
   "peerDependencies": {
     "typescript": "^5"
   },
@@ -23,6 +27,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "prom-client": "^15.1.3"
   }
 }

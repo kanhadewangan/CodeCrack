@@ -75,4 +75,11 @@ export const contestApi = {
   createContest: (body: any) => apiRequest("/contest/create-contest", { method: "POST", body: JSON.stringify(body) }),
   joinContest: (body: any) => apiRequest("/contest/join-contest", { method: "POST", body: JSON.stringify(body) }),
   getContestParticipants: (contestId: string) => apiRequest(`/contest/get-contest-participants/${contestId}`),
+  getJoinedContests: () => apiRequest("/contest/joined-contests"),
+  getContestDetails: (contestId: string) => apiRequest(`/contest/get-contest-details/${contestId}`),
+  getContestProblems: (contestId: string) => apiRequest(`/contest/get-contest-problems/${contestId}`),
+  addProblemToContest: (body: any) => apiRequest("/contest/add-problem-to-contest", { method: "POST", body: JSON.stringify(body) }),
+  leaveContest: (body: any) => apiRequest("/contest/leave-contest", { method: "POST", body: JSON.stringify(body) }),
+  deleteContest: (body: any) => apiRequest("/contest/delete-contest", { method: "POST", body: JSON.stringify(body) }),
+  removeProblemFromContest: (body: any) => apiRequest("/contest/remove-problem-from-contest", { method: "POST", body: JSON.stringify(body) }),
 }

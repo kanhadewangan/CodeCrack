@@ -8,16 +8,28 @@ import streaksRoute from "./code-submisson/streaks.ts";
 import cors from "cors";
 import { type Request, type Response } from "express";
 import contestRoute from "./contest/index.ts";
+import client from "prom-client";
+
+// Prometheus metrics setup
+const collectDefaultMetrics = client.collectDefaultMetrics;
+collectDefaultMetrics({register:client.register});
+
+
+
+
+
 const app = express();
-
-
-
 app.use(express.json());
 
 app.use(cors({
   origin: "*", // Allow all origins
   methods: ["GET", "POST", "PUT", "DELETE"], // Allow specific HTTP methods
 }));
+
+app.get("/metrics", async (_req: Request, res: Response) => {
+  res.setHeader("Content-Type", client.register.contentType);
+  res.end(await client.register.metrics());
+})
 
 app.use("/auth", route);
 app.use("/problems", problemsRoute);

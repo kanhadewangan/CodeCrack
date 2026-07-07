@@ -1,6 +1,6 @@
 import {prisma} from "@repo/db";
 import express from "express";
-import {type Request, type Response, type NextFunction} from "express";
+import {type Request, type Response} from "express";
 const route = express.Router();
 
 
@@ -26,13 +26,11 @@ export default streaksRoute;
 
 
  const getStreaks = async (userId: string) => {
-    const contributions = await prisma.contribution.findMany({
-        where: {
-            userId,
-        },
-        orderBy: {
-            createdAt: 'desc',
-        },
+    const contributions = await prisma.streak.findMany({
+       where:{
+        userId: req.userId
+       }
+       
     });
 
     let streaks = 0;

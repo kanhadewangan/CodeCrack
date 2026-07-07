@@ -80,6 +80,10 @@ export default function ProblemDetailsPage({
   const [selectedSubCode, setSelectedSubCode] = useState<string | null>(null);
   const [showConsole, setShowConsole] = useState(false);
 
+  // NEW: controls the "Accepted" celebration overlay
+  const [showAcceptedAnimation, setShowAcceptedAnimation] = useState(false);
+  const acceptedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -97,6 +101,7 @@ export default function ProblemDetailsPage({
     loadSubmissions();
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (acceptedTimeoutRef.current) clearTimeout(acceptedTimeoutRef.current);
     };
   }, [id, user]);
 
@@ -115,6 +120,15 @@ export default function ProblemDetailsPage({
     } finally {
       setLoadingSubmissions(false);
     }
+  };
+
+  // NEW: triggers the celebration overlay and auto-dismisses it
+  const triggerAcceptedAnimation = () => {
+    setShowAcceptedAnimation(true);
+    if (acceptedTimeoutRef.current) clearTimeout(acceptedTimeoutRef.current);
+    acceptedTimeoutRef.current = setTimeout(() => {
+      setShowAcceptedAnimation(false);
+    }, 3200);
   };
 
   const pollSubmissionStatus = (subId: string) => {
@@ -155,6 +169,11 @@ export default function ProblemDetailsPage({
           ]);
           setSubmitting(false);
           loadSubmissions();
+
+          // NEW: fire the celebration animation on acceptance
+          if (statusData.status === "ACCEPTED") {
+            triggerAcceptedAnimation();
+          }
         }
       } catch {
         /* ignore */
@@ -832,6 +851,164 @@ export default function ProblemDetailsPage({
           </div>
         </div>
       </div>
+
+      {/* NEW: Accepted celebration overlay */}
+      {showAcceptedAnimation && (
+        <div
+          className="accepted-overlay"
+          onClick={() => setShowAcceptedAnimation(false)}
+        >
+          <div className="accepted-card">
+            <div className="confetti-wrap">
+              {Array.from({ length: 26 }).map((_, i) => (
+                <span
+                  key={i}
+                  className="confetti-piece"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 0.5}s`,
+                    background: [
+                      "#22c55e",
+                      "#a5b4fc",
+                      "#f0db4f",
+                      "#f472b6",
+                      "#38bdf8",
+                    ][i % 5],
+                  }}
+                />
+              ))}
+            </div>
+            <svg className="accepted-check" viewBox="0 0 52 52">
+              <circle
+                className="accepted-check-circle"
+                cx="26"
+                cy="26"
+                r="24"
+                fill="none"
+              />
+              <path
+                className="accepted-check-mark"
+                fill="none"
+                d="M14.1 27.2l7.1 7.2 16.7-16.8"
+              />
+            </svg>
+            <h2 className="accepted-title">Accepted</h2>
+            <p className="accepted-sub">All test cases passed 🎉</p>
+          </div>
+        </div>
+      )}
+
+      {/* NEW: animation styles */}
+      <style>{`
+        @keyframes accepted-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes accepted-pop {
+          0% { transform: scale(0.6); opacity: 0; }
+          60% { transform: scale(1.06); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes accepted-circle-draw {
+          from { stroke-dashoffset: 166; }
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes accepted-check-draw {
+          from { stroke-dashoffset: 48; }
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes confetti-fall {
+          0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(240px) rotate(360deg); opacity: 0; }
+        }
+
+        .accepted-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(5, 5, 10, 0.72);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 999;
+          animation: accepted-fade-in 0.25s ease-out;
+          backdrop-filter: blur(4px);
+        }
+
+        .accepted-card {
+          position: relative;
+          background: var(--bg-elevated, #14141c);
+          border: 1px solid rgba(34, 197, 94, 0.35);
+          border-radius: 16px;
+          padding: 2.5rem 3rem;
+          text-align: center;
+          box-shadow: 0 0 60px rgba(34, 197, 94, 0.18);
+          animation: accepted-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+          overflow: hidden;
+          min-width: 260px;
+        }
+
+        .accepted-check {
+          width: 84px;
+          height: 84px;
+          margin: 0 auto 1rem;
+          display: block;
+          position: relative;
+          z-index: 1;
+        }
+
+        .accepted-check-circle {
+          stroke: var(--easy, #22c55e);
+          stroke-width: 3;
+          stroke-dasharray: 166;
+          stroke-dashoffset: 166;
+          animation: accepted-circle-draw 0.6s ease-out forwards;
+        }
+
+        .accepted-check-mark {
+          stroke: var(--easy, #22c55e);
+          stroke-width: 4;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          stroke-dasharray: 48;
+          stroke-dashoffset: 48;
+          animation: accepted-check-draw 0.4s 0.5s ease-out forwards;
+        }
+
+        .accepted-title {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: var(--easy, #22c55e);
+          margin: 0 0 0.4rem;
+          letter-spacing: 0.02em;
+          position: relative;
+          z-index: 1;
+        }
+
+        .accepted-sub {
+          font-size: 0.9rem;
+          color: var(--text-muted, #999);
+          margin: 0;
+          position: relative;
+          z-index: 1;
+        }
+
+        .confetti-wrap {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          pointer-events: none;
+        }
+
+        .confetti-piece {
+          position: absolute;
+          top: -10px;
+          width: 6px;
+          height: 12px;
+          opacity: 0.9;
+          border-radius: 2px;
+          animation: confetti-fall 1.8s ease-in forwards;
+        }
+      `}</style>
     </RequireAuth>
   );
 }
