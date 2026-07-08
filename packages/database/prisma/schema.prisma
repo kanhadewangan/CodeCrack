@@ -169,15 +169,16 @@ model contestProblems {
 model contestParticipants{
   id String @id @default(cuid())
   contestId String
-  userId String
+  userId String @unique
   createdAt DateTime @default(now())
   contests contest @relation(fields: [contestId], references: [id])
   users user @relation(fields: [userId], references: [id])
+  @@index([contestId,userId])
 }
 model leaderboardContest{
   id String @id @default(cuid())
   contestId String  
-  userId String
+  userId String 
   rating Int
   createdAt DateTime @default(now())
   contests contest @relation(fields: [contestId], references: [id])

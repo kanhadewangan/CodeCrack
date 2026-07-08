@@ -1,11 +1,10 @@
 import express , {type Request, type Response} from "express";
 import {prisma} from "@repo/db";
-import auth from "../auth";
 import { authMiddleware } from "../auth/middleware";
 const route = express.Router();
 
 
-            route.post('/create-contest', async(req: Request, res: Response)=>{
+         route.post('/create-contest', async(req: Request, res: Response)=>{
                 const {name, description, startTime, endTime} = req.body;
                 try{
                     console.log("Creating contest with data:", {name, description, startTime    , endTime});
@@ -52,19 +51,41 @@ const route = express.Router();
      
         route.post("/join-contest",authMiddleware,async (req:Request, res: Response)=>{
         try{  const {contestId} = req.body;
+            const existingParticipant = await prisma.contestParticipants.findFirst({
+                where:{
+                    contestId,
+                    userId: (req as any).user.id
+                }
+            });
+            if(existingParticipant){
+                return res.status(400).json({error: "User already joined the contest"});
+            }
+            
             const joinContest = await prisma.contestParticipants.create({
                 data: {
                     contestId,
-                    userId: req.user?.id
+                    userId: (req as any).user.id
+                },
+                
+            });
+            const userInfo = await prisma.user.findUnique({
+                where: {
+                    id: (req as any).user.id
+                },
+                select: {
+                    email: true,
                 }
             });
-            res.status(200).json({"message": "Joined contest successfully", joinContest})
+            res.status(200).json({"message": "Joined contest successfully", userInfo, joinContest});
         }
         catch(err){
             console.log(err);
             res.status(500).json({error: "Internal Server Error"});
         }
         })
+
+
+
 
         route.get("/get-contest-participants/:contestId", async(req: Request, res: Response)=>{
             const {contestId} = req.params;
@@ -93,7 +114,7 @@ const route = express.Router();
 
         route.get('/joined-contests', authMiddleware, async(req: Request, res: Response)=>{
             try{
-                const userId = req.user?.id;
+                const userId = (req as any).user.id;
                 if(!userId){
                     return res.status(400).json({error: "User not authenticated"});
                 }
