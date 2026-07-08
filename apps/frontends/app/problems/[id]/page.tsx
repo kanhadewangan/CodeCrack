@@ -3,8 +3,9 @@
 import * as React from "react";
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../../context/AuthContext";
-import { problemsApi, submissionsApi } from "../../../lib/api";
+import { problemsApi, submissionsApi, hintsApi, contestApi } from "../../../lib/api";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import RequireAuth from "../../../components/RequireAuth";
 
 interface Problem {
@@ -49,7 +50,7 @@ if __name__ == '__main__':
     solve()
 `;
 
-const TABS = ["Description", "Editorial", "Submissions", "Discussion"];
+const TABS = ["Description", "Hints", "Editorial", "Submissions", "Discussion"];
 
 export default function ProblemDetailsPage({
   params,
@@ -58,10 +59,15 @@ export default function ProblemDetailsPage({
 }) {
   const { user } = useAuth();
   const { id } = React.use(params);
+  const searchParams = useSearchParams();
+  const contestId = searchParams.get("contestId");
 
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [hints, setHints] = useState<any[]>([]);
+  const [newHint, setNewHint] = useState("");
+  const [addingHint, setAddingHint] = useState(false);
 
   const [activeTab, setActiveTab] = useState<string>("Description");
   const [language, setLanguage] = useState<"javascript" | "python">(
@@ -91,6 +97,8 @@ export default function ProblemDetailsPage({
       try {
         const item = await problemsApi.get(id);
         setProblem(item);
+        const hintsData = await hintsApi.getHints(id).catch(() => []);
+        setHints(hintsData);
       } catch (err: any) {
         setError(err.message || "Failed to load problem.");
       } finally {
@@ -113,8 +121,14 @@ export default function ProblemDetailsPage({
     if (!user) return;
     setLoadingSubmissions(true);
     try {
-      const all = await submissionsApi.list();
-      setSubmissions(all.filter((s: any) => s.problemId === id));
+      if (contestId) {
+        const data = await contestApi.getContestSubmissions(contestId);
+        const list = Array.isArray(data?.submissions) ? data.submissions : [];
+        setSubmissions(list.filter((s: any) => s.problemId === id));
+      } else {
+        const all = await submissionsApi.list();
+        setSubmissions(all.filter((s: any) => s.problemId === id));
+      }
     } catch {
       /* ignore */
     } finally {
@@ -191,11 +205,14 @@ export default function ProblemDetailsPage({
     setShowConsole(true);
     setSubmissionProgressLog(["Registering submission request with core server API..."]);
     try {
-      const response = await submissionsApi.submit({
+      const payload = {
         problemId: id,
         code,
         language: language === "javascript" ? "js" : "py",
-      });
+      };
+      const response = contestId
+        ? await contestApi.submitContestProblem({ ...payload, contestId })
+        : await submissionsApi.submit(payload);
       if (response.submissionId) {
         pollSubmissionStatus(response.submissionId);
       } else {
@@ -305,6 +322,18 @@ export default function ProblemDetailsPage({
             color: "var(--text-muted)",
           }}
         >
+          {contestId ? (
+            <>
+              <Link
+                href={`/contests/${contestId}`}
+                style={{ color: "var(--text-muted)", transition: "color 0.15s" }}
+              >
+                ← Contest
+              </Link>
+              <span>/</span>
+            </>
+          ) : (
+            <>
           <Link
             href="/problems"
             style={{ color: "var(--text-muted)", transition: "color 0.15s" }}
@@ -312,9 +341,27 @@ export default function ProblemDetailsPage({
             ← All problems
           </Link>
           <span>/</span>
+            </>
+          )}
           <span style={{ color: "var(--text-heading)", fontWeight: "500" }}>
             {problem.title}
           </span>
+          {contestId && (
+            <span
+              style={{
+                marginLeft: "auto",
+                border: "1px solid rgba(34,197,94,0.24)",
+                color: "var(--easy)",
+                borderRadius: "999px",
+                padding: "0.18rem 0.55rem",
+                fontSize: "0.68rem",
+                fontWeight: 700,
+                textTransform: "uppercase",
+              }}
+            >
+              Contest submission
+            </span>
+          )}
         </div>
 
         {/* Split layout */}
@@ -440,6 +487,72 @@ export default function ProblemDetailsPage({
                 </div>
               )}
 
+              {activeTab === "Hints" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                  <h3
+                    style={{
+                      fontSize: "1.1rem",
+                      fontWeight: "600",
+                      color: "var(--text-heading)",
+                    }}
+                  >
+                    Hints
+                  </h3>
+                  {hints.length === 0 ? (
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>No hints available for this problem yet.</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                      {hints.map((hint, idx) => (
+                        <div key={hint.id} className="glass-card" style={{ padding: "0.9rem", fontSize: "0.9rem", lineHeight: 1.5 }}>
+                          <strong style={{ color: "var(--purple-3)" }}>Hint {idx + 1}:</strong> {hint.hint}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {user && (
+                    <div style={{ marginTop: "1rem" }}>
+                      <textarea
+                        value={newHint}
+                        onChange={(e) => setNewHint(e.target.value)}
+                        placeholder="Share a helpful hint for this problem..."
+                        style={{
+                          width: "100%",
+                          background: "var(--bg-input)",
+                          border: "1px solid var(--border-soft)",
+                          color: "var(--text-body)",
+                          padding: "0.75rem",
+                          borderRadius: "8px",
+                          resize: "vertical",
+                          minHeight: "80px",
+                          fontFamily: "var(--font-body)",
+                          fontSize: "0.9rem",
+                          marginBottom: "0.5rem"
+                        }}
+                      />
+                      <button
+                        className="btn btn-primary btn-sm"
+                        disabled={addingHint || !newHint.trim()}
+                        onClick={async () => {
+                          setAddingHint(true);
+                          try {
+                            const added = await hintsApi.addHint({ problemId: id, hint: newHint.trim() });
+                            setHints([...hints, added]);
+                            setNewHint("");
+                          } catch (err) {
+                            console.error(err);
+                            alert("Failed to add hint.");
+                          } finally {
+                            setAddingHint(false);
+                          }
+                        }}
+                      >
+                        {addingHint ? "Adding..." : "Add Hint"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {activeTab === "Submissions" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                   <h3
@@ -449,8 +562,8 @@ export default function ProblemDetailsPage({
                       color: "var(--text-heading)",
                       marginBottom: "0.25rem",
                     }}
-                  >
-                    My Submissions ({submissions.length})
+                    >
+                    {contestId ? "Contest Submissions" : "My Submissions"} ({submissions.length})
                   </h3>
                   {!user ? (
                     <div

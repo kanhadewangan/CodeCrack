@@ -5,10 +5,28 @@ import {type Request, type Response, type NextFunction} from "express";
 import {startWorker} from "@repo/code-runner"
 import { rateLimiter } from "@reoo/ratelimit";
 import dotenv from "dotenv";
+import { recordContestScore } from "../contest/liveContest";
 dotenv.config();
 
 const router = express.Router();
-startWorker().catch((error) => {
+
+startWorker(async (submission) => {
+  if (submission.status !== "ACCEPTED" || !submission.contestId || !submission.isFirstAcceptedInContest) return;
+
+  const pointsByDifficulty = {
+    EASY: 100,
+    MEDIUM: 200,
+    HARD: 300,
+  };
+
+  const scoreDelta = pointsByDifficulty[submission.difficulty ?? "EASY"];
+  await recordContestScore({
+    contestId: submission.contestId,
+    userId: submission.userId,
+    scoreDelta,
+    penalty: 0,
+  });
+}).catch((error) => {
   console.error("Failed to start submission worker", error);
   process.exit(1);
 });
@@ -51,7 +69,7 @@ router.get("/submissions/:id", async (req: Request, res: Response) => {
 router.post("/submission", async (req: Request, res: Response) => {
    
    try {
-    const {  problemId, code, language } = req.body;
+    const {  problemId, code, language, contestId } = req.body;
     if(!problemId || !code || !language) {
         return res.status(400).json({ message: "Missing required fields" });
     }
@@ -66,6 +84,7 @@ router.post("/submission", async (req: Request, res: Response) => {
         const submission = await prisma.submissions.create({
             data: {
                 problemId,
+                contestId,
                 code,
                 language,
                 status: "PENDING",
@@ -74,6 +93,7 @@ router.post("/submission", async (req: Request, res: Response) => {
             select:{
                 id: true,
                 problemId: true,
+                contestId: true,
                 code: true,
                 language: true,
                 userId: true
@@ -96,6 +116,7 @@ router.post("/submission", async (req: Request, res: Response) => {
        const message = {
         submissionId: submission.id,
         problemId: submission.problemId,
+        contestId: submission.contestId,
         code: submission.code,
         language: submission.language,
        }
@@ -118,5 +139,3 @@ router.post("/submission", async (req: Request, res: Response) => {
 
 const submissionsRoute = router;
 export default submissionsRoute;
-
-

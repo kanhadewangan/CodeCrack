@@ -220,6 +220,7 @@ export default function LeaderboardPage() {
                 {podiumOrder.map((item, pIdx) => {
                   if (!item) return null;
                   const cfg = podiumConfig[pIdx];
+                  if (!cfg) return null;
                   const isFirst = cfg.rank === 1;
                   return (
                     <div

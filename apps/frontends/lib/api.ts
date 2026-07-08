@@ -1,4 +1,5 @@
-const API_BASE = "http://localhost:3001"; // Replace with your actual API base URL
+export const API_BASE = "http://localhost:3001"; // Replace with your actual API base URL
+export const SOCKET_BASE = API_BASE;
 
 function getAuthHeaders(): HeadersInit {
   if (typeof window === "undefined") return {};
@@ -48,11 +49,17 @@ export const problemsApi = {
   create: (body: any) => apiRequest("/problems/problems", { method: "POST", body: JSON.stringify(body) }),
 };
 
+// Hints APIs
+export const hintsApi = {
+  getHints: (problemId: string) => apiRequest(`/problems/hints/${problemId}`),
+  addHint: (body: any) => apiRequest("/problems/hints", { method: "POST", body: JSON.stringify(body) }),
+};
+
 // Submissions APIs
 export const submissionsApi = {
   list: () => apiRequest("/api/submissions"),
   get: (id: string) => apiRequest(`/api/submissions/${id}`),
-  submit: (body: { problemId: string; code: string; language: string }) =>
+  submit: (body: { problemId: string; code: string; language: string; contestId?: string }) =>
     apiRequest("/api/submission", { method: "POST", body: JSON.stringify(body) }),
 };
 
@@ -78,8 +85,13 @@ export const contestApi = {
   getJoinedContests: () => apiRequest("/contest/joined-contests"),
   getContestDetails: (contestId: string) => apiRequest(`/contest/get-contest-details/${contestId}`),
   getContestProblems: (contestId: string) => apiRequest(`/contest/get-contest-problems/${contestId}`),
-  addProblemToContest: (body: any) => apiRequest("/contest/add-problem-to-contest", { method: "POST", body: JSON.stringify(body) }),
+  addProblemToContest: (body: any) => apiRequest("/contest/add-problem", { method: "POST", body: JSON.stringify(body) }),
   leaveContest: (body: any) => apiRequest("/contest/leave-contest", { method: "POST", body: JSON.stringify(body) }),
   deleteContest: (body: any) => apiRequest("/contest/delete-contest", { method: "POST", body: JSON.stringify(body) }),
-  removeProblemFromContest: (body: any) => apiRequest("/contest/remove-problem-from-contest", { method: "POST", body: JSON.stringify(body) }),
-}
+  removeProblemFromContest: (body: any) => apiRequest("/contest/remove-problem", { method: "POST", body: JSON.stringify(body) }),
+  startContest: (contestId: string) => apiRequest(`/contest/start-contest/${contestId}`, { method: "POST" }),
+  updateContest: (contestId: string, body: any) => apiRequest(`/contest/update-contest/${contestId}`, { method: "PUT", body: JSON.stringify(body) }),
+  getContestLeaderboard: (contestId: string) => apiRequest(`/contest/get-contest-leaderboard/${contestId}`),
+  getContestSubmissions: (contestId: string) => apiRequest(`/contest/get-contest-submissions/${contestId}`),
+  submitContestProblem: (body: any) => apiRequest("/contest/submit-contest-problem", { method: "POST", body: JSON.stringify(body) }),
+};

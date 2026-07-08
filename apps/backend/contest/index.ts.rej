@@ -1,0 +1,29 @@
+--- index.ts
++++ index.ts
+@@ -246,6 +246,26 @@
+             }
+         })
+ 
++        route.get("/get-contest-leaderboard/:contestId", async(req: Request, res: Response)=>{
++            const {contestId} = req.params;
++            try{
++                const leaderboard = await prisma.leaderboardContest.findMany({
++                    where: { contestId },
++                    orderBy: { rating: "desc" },
++                    include: {
++                        users: {
++                            select: { email: true }
++                        }
++                    }
++                });
++                res.status(200).json({"message": "Leaderboard retrieved", leaderboard});
++            }
++            catch(err){
++                console.error(err);
++                res.status(500).json({error: "Internal Server Error"});
++            }
++        })
++
+         route.get("/get-contest-details/:contestId", async(req: Request, res: Response)=>{
+             const {contestId} = req.params;
+             try{

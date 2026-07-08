@@ -1,8 +1,17 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { contestApi } from "../../../lib/api";
+import { useAuth } from "../../../context/AuthContext";
+import {
+  createContestSocket,
+  type ContestEndedPayload,
+  type ContestStartedPayload,
+  type LeaderboardPayload,
+  type LeaderboardRow,
+} from "../../../lib/contestSocket";
 
 // ---- Types -----------------------------------------------------------
 
@@ -12,22 +21,29 @@ interface Contest {
   description?: string;
   startTime?: string;
   endTime?: string;
+  actualStartTime?: string;
+  actualEndTime?: string;
+  status?: "DRAFT" | "SCHEDULED" | "RUNNING" | "ENDED" | "CANCELLED";
   participantCount?: number;
-  isOwner?: boolean; // assumed: server tells us if the current user created this contest
-  joined?: boolean; // assumed: server tells us if the current user has joined
+  isOwner?: boolean;
+  joined?: boolean;
 }
 
 interface Problem {
   id: string;
   title: string;
-  difficulty?: "easy" | "medium" | "hard";
+  difficulty?: "EASY" | "MEDIUM" | "HARD" | "easy" | "medium" | "hard";
   points?: number;
 }
 
 interface Participant {
   id: string;
+  userId?: string;
   name?: string;
   username?: string;
+  users?: {
+    email?: string;
+  };
   score?: number;
 }
 
@@ -36,10 +52,12 @@ type ContestStatus = "upcoming" | "live" | "ended" | "unknown";
 // ---- Helpers -----------------------------------------------------------
 
 function getStatus(contest?: Contest | null): ContestStatus {
+  if (contest?.status === "RUNNING") return "live";
+  if (contest?.status === "ENDED" || contest?.status === "CANCELLED") return "ended";
   if (!contest?.startTime || !contest?.endTime) return "unknown";
   const now = Date.now();
-  const start = new Date(contest.startTime).getTime();
-  const end = new Date(contest.endTime).getTime();
+  const start = new Date(contest.actualStartTime ?? contest.startTime).getTime();
+  const end = new Date(contest.actualEndTime ?? contest.endTime).getTime();
   if (Number.isNaN(start) || Number.isNaN(end)) return "unknown";
   if (now < start) return "upcoming";
   if (now > end) return "ended";
@@ -82,10 +100,14 @@ function ContestDetailPage() {
   const params = useParams();
   const router = useRouter();
   const contestId = String(params?.id ?? "");
+  const { user } = useAuth();
 
   const [contest, setContest] = useState<Contest | null>(null);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
+  const [socketState, setSocketState] = useState<"offline" | "connecting" | "live">("offline");
+  const [lastLeaderboardUpdate, setLastLeaderboardUpdate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -101,27 +123,115 @@ function ContestDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      const [details, problemsData, participantsData] = await Promise.all([
+      const [details, problemsData, participantsData, leaderboardData] = await Promise.all([
         contestApi.getContestDetails(contestId),
         contestApi.getContestProblems(contestId),
         contestApi.getContestParticipants(contestId),
+        contestApi.getContestLeaderboard(contestId).catch(() => ({ leaderboard: [] })),
       ]);
       setContest(details?.contest ?? details ?? null);
-      setProblems(Array.isArray(problemsData?.problems) ? problemsData.problems : []);
-      setParticipants(
-        Array.isArray(participantsData?.participants) ? participantsData.participants : []
-      );
+      if (leaderboardData?.leaderboard) setLeaderboard(leaderboardData.leaderboard);
+      const mappedProblems = Array.isArray(problemsData?.contestProblems) ? problemsData.contestProblems.map((cp: any) => cp.problems).filter(Boolean) : [];
+      setProblems(mappedProblems);
+      const parts = Array.isArray(participantsData?.participants) ? participantsData.participants : [];
+      setParticipants(parts);
+      
+      const isJoined = Boolean(user?.id && parts.some((p: any) => p.userId === user.id));
+      setContest({ ...(details?.contest ?? details ?? null), joined: isJoined });
     } catch (err) {
       console.error(err);
       setError("Couldn't load this contest.");
     } finally {
       setLoading(false);
     }
-  }, [contestId]);
+  }, [contestId, user?.id]);
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, user]);
+
+  useEffect(() => {
+    if (!contestId || !contest?.joined || typeof window === "undefined") {
+      setSocketState("offline");
+      return;
+    }
+
+    const token = localStorage.getItem("oj_token");
+    if (!token) {
+      setSocketState("offline");
+      return;
+    }
+
+    setSocketState("connecting");
+    const socket = createContestSocket(token);
+
+    const syncLeaderboard = () => {
+      socket.emit("leaderboard:sync", { contestId, topN: 50 }, (payload: LeaderboardPayload) => {
+        if (payload?.rankings) {
+          setLeaderboard(payload.rankings);
+          setLastLeaderboardUpdate(payload.updatedAt);
+        }
+      });
+    };
+
+    socket.on("connect", () => {
+      setSocketState("live");
+      socket.emit("join_contest", { contestId }, () => syncLeaderboard());
+    });
+
+    socket.on("disconnect", () => {
+      setSocketState("connecting");
+    });
+
+    socket.io.on("reconnect", syncLeaderboard);
+
+    socket.on("leaderboard:update", (payload: LeaderboardPayload) => {
+      if (payload.contestId !== contestId) return;
+      setLeaderboard(payload.rankings);
+      setLastLeaderboardUpdate(payload.updatedAt);
+    });
+
+    socket.on("contest:started", (payload: ContestStartedPayload) => {
+      if (payload.contestId !== contestId) return;
+      setContest((current) =>
+        current
+          ? {
+              ...current,
+              status: "RUNNING",
+              actualStartTime: payload.actualStartTime,
+              actualEndTime: payload.actualEndTime,
+            }
+          : current,
+      );
+      syncLeaderboard();
+    });
+
+    socket.on("contest:ended", (payload: ContestEndedPayload) => {
+      if (payload.contestId !== contestId) return;
+      setContest((current) =>
+        current
+          ? {
+              ...current,
+              status: "ENDED",
+              actualEndTime: payload.endedAt,
+            }
+          : current,
+      );
+      setLeaderboard(payload.finalRankings);
+      setLastLeaderboardUpdate(payload.endedAt);
+    });
+
+    socket.on("contest:error", (payload: { message?: string }) => {
+      console.error("Contest socket error:", payload);
+      setSocketState("offline");
+    });
+
+    return () => {
+      socket.emit("leave_contest", { contestId });
+      socket.disconnect();
+      setSocketState("offline");
+    };
+  }, [contestId, contest?.joined]);
 
   async function handleJoin() {
     if (!contest) return;
@@ -129,6 +239,7 @@ function ContestDetailPage() {
     try {
       await contestApi.joinContest({ contestId: contest.id });
       setContest({ ...contest, joined: true });
+      load(); // refresh participants
     } catch (err) {
       console.error(err);
       window.alert("Couldn't join this contest. Try again in a moment.");
@@ -142,8 +253,9 @@ function ContestDetailPage() {
     if (!window.confirm(`Leave "${contest.name}"?`)) return;
     setBusy(true);
     try {
-      await contestApi.leaveContest({ contestId: contest.id });
+      await contestApi.leaveContest({ contestId: contest.id, userId: user?.id });
       setContest({ ...contest, joined: false });
+      load(); // refresh participants
     } catch (err) {
       console.error(err);
       window.alert("Couldn't leave this contest. Try again in a moment.");
@@ -166,6 +278,20 @@ function ContestDetailPage() {
     }
   }
 
+  async function handleStart() {
+    if (!contest) return;
+    setBusy(true);
+    try {
+      await contestApi.startContest(contest.id);
+      await load();
+    } catch (err) {
+      console.error(err);
+      window.alert("Couldn't start this contest.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleAddProblem(e: React.FormEvent) {
     e.preventDefault();
     if (!problemForm.problemId.trim()) {
@@ -183,7 +309,8 @@ function ContestDetailPage() {
       setShowAddProblem(false);
       setProblemForm({ problemId: "", points: "" });
       const problemsData = await contestApi.getContestProblems(contestId);
-      setProblems(Array.isArray(problemsData?.problems) ? problemsData.problems : []);
+      const mappedProblems = Array.isArray(problemsData?.contestProblems) ? problemsData.contestProblems.map((cp: any) => cp.problems).filter(Boolean) : [];
+      setProblems(mappedProblems);
     } catch (err) {
       console.error(err);
       setAddError("Couldn't add that problem. Check the ID and try again.");
@@ -231,6 +358,7 @@ function ContestDetailPage() {
 
   const status = getStatus(contest);
   const meta = STATUS_META[status];
+  const formattedUpdate = formatDate(lastLeaderboardUpdate ?? undefined);
 
   return (
     <div className="page">
@@ -245,9 +373,14 @@ function ContestDetailPage() {
             {meta.label}
           </span>
           {contest.isOwner && (
-            <button className="btn btn-ghost btn-sm btn-danger" onClick={handleDelete} disabled={busy}>
-              Delete contest
-            </button>
+            <div className="admin-actions">
+              <button className="btn btn-ghost btn-sm" onClick={handleStart} disabled={busy || status === "live" || status === "ended"}>
+                Start contest
+              </button>
+              <button className="btn btn-ghost btn-sm btn-danger" onClick={handleDelete} disabled={busy || status === "live"}>
+                Delete contest
+              </button>
+            </div>
           )}
         </div>
 
@@ -257,7 +390,7 @@ function ContestDetailPage() {
         <div className="hero-meta">
           {formatDate(contest.startTime) && (
             <span>
-              {formatDate(contest.startTime)} → {formatDate(contest.endTime) || "—"}
+              {formatDate(contest.actualStartTime ?? contest.startTime)} → {formatDate(contest.actualEndTime ?? contest.endTime) || "—"}
             </span>
           )}
           {typeof contest.participantCount === "number" && (
@@ -285,7 +418,7 @@ function ContestDetailPage() {
       <section className="section">
         <div className="section-head">
           <h2>Problems</h2>
-          {contest.isOwner && (
+          {contest.isOwner && status !== "live" && status !== "ended" && (
             <button className="btn btn-ghost btn-sm" onClick={() => setShowAddProblem(true)}>
               Add problem
             </button>
@@ -304,8 +437,8 @@ function ContestDetailPage() {
                     <span
                       className="difficulty-pill"
                       style={{
-                        color: DIFFICULTY_COLOR[problem.difficulty],
-                        background: DIFFICULTY_BG[problem.difficulty],
+                        color: DIFFICULTY_COLOR[problem.difficulty.toLowerCase()],
+                        background: DIFFICULTY_BG[problem.difficulty.toLowerCase()],
                       }}
                     >
                       {problem.difficulty}
@@ -316,7 +449,12 @@ function ContestDetailPage() {
                   {typeof problem.points === "number" && (
                     <span className="mono points">{problem.points} pts</span>
                   )}
-                  {contest.isOwner && (
+                  {contest.joined && status === "live" && (
+                    <Link className="link-btn" href={`/problems/${problem.id}?contestId=${contest.id}`}>
+                      Solve
+                    </Link>
+                  )}
+                  {contest.isOwner && status !== "live" && status !== "ended" && (
                     <button
                       className="link-btn danger"
                       onClick={() => handleRemoveProblem(problem)}
@@ -334,6 +472,31 @@ function ContestDetailPage() {
 
       <section className="section">
         <div className="section-head">
+          <h2>Leaderboard</h2>
+          <span className={`socket-pill socket-${socketState}`}>
+            {socketState === "live" ? "Live" : socketState === "connecting" ? "Connecting" : "Offline"}
+          </span>
+        </div>
+        {formattedUpdate && <p className="leaderboard-meta">Updated {formattedUpdate}</p>}
+        {leaderboard.length === 0 ? (
+          <p className="muted">No leaderboard data available.</p>
+        ) : (
+          <ul className="participant-list">
+            {leaderboard.map((lb) => (
+              <li key={lb.userId}>
+                <span>
+                  <strong>#{lb.rank}</strong> &nbsp;
+                  {lb.username || lb.userId}
+                </span>
+                <span className="mono points">{lb.score} pts · {lb.penalty} pen</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="section">
+        <div className="section-head">
           <h2>Participants</h2>
         </div>
         {participants.length === 0 && <p className="muted">No one has joined yet.</p>}
@@ -341,7 +504,7 @@ function ContestDetailPage() {
           <ul className="participant-list">
             {participants.map((p) => (
               <li key={p.id}>
-                <span>{p.username || p.name || p.id}</span>
+                <span>{p.username || p.name || p.users?.email || p.userId || p.id}</span>
                 {typeof p.score === "number" && <span className="mono">{p.score}</span>}
               </li>
             ))}
@@ -456,6 +619,12 @@ const pageStyles = `
     justify-content: space-between;
     margin-bottom: 14px;
   }
+  .admin-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
   .status {
     display: flex;
     align-items: center;
@@ -546,6 +715,28 @@ const pageStyles = `
     border: 1px solid var(--border-card);
     border-radius: var(--radius-md);
     font-size: 14px;
+  }
+  .leaderboard-meta {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin: -6px 0 12px;
+  }
+  .socket-pill {
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-pill);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 9px;
+    text-transform: uppercase;
+  }
+  .socket-live {
+    color: var(--easy);
+    border-color: rgba(34, 197, 94, 0.28);
+  }
+  .socket-connecting {
+    color: var(--medium);
+    border-color: rgba(245, 158, 11, 0.28);
   }
   .problem-info {
     display: flex;
