@@ -15,6 +15,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@reoo/ratelimit": "workspace:*",
     "@repo/code-runner": "workspace:*",
     "@repo/db": "workspace:*",
     "@repo/queue": "workspace:*",

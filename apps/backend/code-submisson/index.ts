@@ -3,6 +3,7 @@ import {prisma} from "@repo/db";
 import {publishToQueue} from "@repo/queue"
 import {type Request, type Response, type NextFunction} from "express";
 import {startWorker} from "@repo/code-runner"
+import { rateLimiter } from "@reoo/ratelimit";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -51,14 +52,24 @@ router.post("/submission", async (req: Request, res: Response) => {
    
    try {
     const {  problemId, code, language } = req.body;
-    const submissionPromise = await new  Promise(async (resolve)=>{
+    if(!problemId || !code || !language) {
+        return res.status(400).json({ message: "Missing required fields" });
+    }
+     
+     const userId = (req as any).user.id;
+      rateLimiter(userId, "submission", 5, 60).then(async (allowed) => {
+        if (!allowed) {
+            return res.status(429).json({ message: "Rate limit exceeded. Please try again later." });
+        }
+      })
+    const submissionPromise = await new  Promise(async (resolve)=>{       
         const submission = await prisma.submissions.create({
             data: {
                 problemId,
                 code,
                 language,
                 status: "PENDING",
-                userId: (req as any).user.id
+                userId
             },
             select:{
                 id: true,
@@ -70,13 +81,13 @@ router.post("/submission", async (req: Request, res: Response) => {
         })
         await prisma.contribution.create({
             data: {
-                userId: (req as any).user.id,
+                userId,
                 problemId: problemId,
             },
         })
         await prisma.streak.create({
             data: {
-                userId: (req as any).user.id,
+                userId,
                 date: new Date(),
             },
         })  

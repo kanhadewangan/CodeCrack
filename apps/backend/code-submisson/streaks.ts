@@ -8,13 +8,13 @@ const route = express.Router();
 
 
 route.get("/streaks", async (req: Request, res: Response) => {
-    const streaks = await getStreaks(req.user.id as string);
+    const streaks = await getStreaks((req as any).user.id, req);
     res.status(200).json({ streaks });
 })
 
 
 route.get("/contributions", async (req: Request, res: Response) => {
-    const contributions = await getContributionMap(req.user.id as string);
+    const contributions = await getContributionMap((req as any).user.id);
     const obj = Object.fromEntries(contributions);
     res.status(200).json(obj);
 })
@@ -25,10 +25,10 @@ export default streaksRoute;
 
 
 
- const getStreaks = async (userId: string) => {
+ const getStreaks = async (userId: string, req: Request) => {
     const contributions = await prisma.streak.findMany({
        where:{
-        userId: req.userId
+        userId: (req as any).user.id
        }
        
     });
