@@ -23,6 +23,7 @@ model user {
   contestParticipants contestParticipants[]
   contestRewards contestRewards[]
   streak streak[]
+  createdContests contest[] @relation("ContestCreator")
 }
 
 model userStat{
@@ -102,15 +103,18 @@ model submissions {
   id       String   @id @default(cuid())
   userId   String
   problemId   String
+  contestId String?
   code     String
   language   String
   status   SubmissionStatus @default(PENDING)
   createdAt DateTime @default(now())
   users user @relation(fields: [userId], references: [id])
   problems problems @relation(fields: [problemId], references: [id])
+  contests contest? @relation(fields: [contestId], references: [id])
   submissionStats submissionStats[]
   @@index([userId])
   @@index([problemId])
+  @@index([contestId])
   @@index([status])
 }
 
@@ -142,6 +146,13 @@ model leaderboard {
   users user @relation(fields: [userId], references: [id])
 }
 
+enum contestStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  ENDED
+  CANCELLED
+}
 
 model contest {
   id       String   @id @default(cuid())
@@ -149,11 +160,20 @@ model contest {
   description   String
   startTime DateTime
   endTime DateTime
+  actualStartTime DateTime?
+  actualEndTime DateTime?
+  status contestStatus @default(DRAFT)
+  creatorId String?
+  minimumParticipants Int @default(1)
   createdAt DateTime @default(now())
+  creator user? @relation("ContestCreator", fields: [creatorId], references: [id])
   contestProblems contestProblems[]
   contestLeaderboard leaderboardContest[]
   contestParticipants contestParticipants[]
   contestRewards contestRewards[]
+  submissions submissions[]
+  @@index([creatorId])
+  @@index([status])
 }
 
 model contestProblems {
@@ -169,20 +189,26 @@ model contestProblems {
 model contestParticipants{
   id String @id @default(cuid())
   contestId String
-  userId String @unique
+  userId String
   createdAt DateTime @default(now())
   contests contest @relation(fields: [contestId], references: [id])
   users user @relation(fields: [userId], references: [id])
   @@index([contestId,userId])
+  @@unique([contestId,userId])
 }
 model leaderboardContest{
   id String @id @default(cuid())
   contestId String  
   userId String 
   rating Int
+  score Int @default(0)
+  penalty Int @default(0)
+  frozen Boolean @default(false)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   contests contest @relation(fields: [contestId], references: [id])
   @@index([contestId,userId])
+  @@unique([contestId,userId])
 }
 
 

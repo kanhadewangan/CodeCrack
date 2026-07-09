@@ -12,6 +12,9 @@ interface Contest {
   description?: string;
   startTime?: string; // ISO date
   endTime?: string; // ISO date
+  actualStartTime?: string;
+  actualEndTime?: string;
+  status?: "DRAFT" | "SCHEDULED" | "RUNNING" | "ENDED" | "CANCELLED";
   participantCount?: number;
   isOwner?: boolean; // assumed: server tells us if the current user created this contest
 }
@@ -22,10 +25,12 @@ type Tab = "all" | "joined";
 // ---- Helpers -----------------------------------------------------------
 
 function getStatus(contest: Contest): ContestStatus {
+  if (contest.status === "RUNNING") return "live";
+  if (contest.status === "ENDED" || contest.status === "CANCELLED") return "ended";
   if (!contest.startTime || !contest.endTime) return "unknown";
   const now = Date.now();
-  const start = new Date(contest.startTime).getTime();
-  const end = new Date(contest.endTime).getTime();
+  const start = new Date(contest.actualStartTime ?? contest.startTime).getTime();
+  const end = new Date(contest.actualEndTime ?? contest.endTime).getTime();
   if (Number.isNaN(start) || Number.isNaN(end)) return "unknown";
   if (now < start) return "upcoming";
   if (now > end) return "ended";
@@ -104,7 +109,11 @@ function ContestsListPage() {
   const refreshJoined = useCallback(async () => {
     try {
       const data = await contestApi.getJoinedContests();
-      const list: Contest[] = Array.isArray(data?.contests) ? data.contests : [];
+      const list: Contest[] = Array.isArray(data?.joinedContests)
+        ? data.joinedContests.map((item: any) => item.contests).filter(Boolean)
+        : Array.isArray(data?.contests)
+          ? data.contests
+          : [];
       setJoinedIds(new Set(list.map((c) => c.id)));
       return list;
     } catch (err) {
@@ -138,8 +147,8 @@ function ContestsListPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim()) {
-      setCreateError("Give the contest a name.");
+    if (!form.name.trim() || !form.startTime || !form.endTime) {
+      setCreateError("Name, start time, and end time are required.");
       return;
     }
     setCreating(true);
@@ -629,8 +638,8 @@ function ContestCard({
       {contest.description && <p className="desc">{contest.description}</p>}
 
       <div className="ccard-meta">
-        {formatDate(contest.startTime) && (
-          <span>{formatDate(contest.startTime)} → {formatDate(contest.endTime) || "—"}</span>
+        {formatDate(contest.actualStartTime ?? contest.startTime) && (
+          <span>{formatDate(contest.actualStartTime ?? contest.startTime)} → {formatDate(contest.actualEndTime ?? contest.endTime) || "—"}</span>
         )}
         {typeof contest.participantCount === "number" && (
           <span>{contest.participantCount} joined</span>

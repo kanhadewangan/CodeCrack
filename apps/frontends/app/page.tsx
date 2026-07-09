@@ -271,9 +271,133 @@ export default function Home() {
       </section>
     </div>
   );
-}
+  }
  
- 
+  if (!user && !loading) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
+        {/* Hero Section */}
+        <section
+          style={{
+            minHeight: "88vh",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            padding: "4rem 2rem",
+            background: "radial-gradient(ellipse at top, rgba(124, 58, 237, 0.15), transparent 70%)",
+            width: "100%",
+          }}
+          className="animate-fade-in"
+        >
+          <div style={{
+             display: "inline-block", padding: "0.4rem 1rem", borderRadius: "999px",
+             background: "rgba(124, 58, 237, 0.1)", border: "1px solid rgba(124, 58, 237, 0.2)",
+             color: "var(--purple-3)", fontSize: "0.85rem", fontWeight: "600", marginBottom: "2rem",
+             textTransform: "uppercase", letterSpacing: "0.05em"
+          }}>
+            V2.0 is now live ✨
+          </div>
+
+          <h1 style={{
+             fontSize: "clamp(2.5rem, 6vw, 4.5rem)", fontWeight: "800", color: "var(--text-heading)",
+             lineHeight: 1.1, marginBottom: "1.5rem", maxWidth: "800px"
+          }}>
+            Master Algorithms.<br/>
+            <span style={{
+              background: "linear-gradient(to right, #a78bfa, #c084fc)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
+            }}>Crack the Code.</span>
+          </h1>
+
+          <p style={{
+             fontSize: "1.1rem", color: "var(--text-muted)", marginBottom: "3rem",
+             maxWidth: "600px", lineHeight: 1.6
+          }}>
+            The premium platform for developers to sharpen their competitive programming skills, prepare for top-tier interviews, and climb the global leaderboard.
+          </p>
+
+          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "center" }}>
+            <Link href="/register" style={{
+              padding: "0.8rem 2rem", borderRadius: "8px", background: "var(--purple-3)",
+              color: "white", fontWeight: "600", textDecoration: "none",
+              boxShadow: "0 0 20px rgba(124, 58, 237, 0.3)",
+              transition: "transform 0.2s, box-shadow 0.2s"
+            }}>
+              Get Started
+            </Link>
+            <Link href="/problems" style={{
+              padding: "0.8rem 2rem", borderRadius: "8px", background: "var(--bg-card)",
+              border: "1px solid var(--border-card)", color: "var(--text-heading)",
+              fontWeight: "600", textDecoration: "none", transition: "background 0.2s"
+            }}>
+              Explore Problems
+            </Link>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section
+          style={{
+            width: "100%", maxWidth: "1280px", margin: "0 auto", padding: "4rem 2rem 6rem",
+          }}
+        >
+          <div style={{ textAlign: "center", marginBottom: "4rem" }}>
+            <h2 style={{ fontSize: "2rem", fontWeight: "800", color: "var(--text-heading)", marginBottom: "1rem" }}>
+              Everything you need to excel
+            </h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "1rem" }}>
+              A deeply integrated ecosystem for algorithmic mastery.
+            </p>
+          </div>
+          <div style={{
+            display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+            gap: "1.5rem"
+          }}>
+            {[
+              {
+                title: "Curated Problemset",
+                desc: "Hundreds of high-quality algorithms from actual tech interviews.",
+                icon: "🧩"
+              },
+              {
+                title: "Live Contests",
+                desc: "Compete against thousands of developers in real-time.",
+                icon: "🏆"
+              },
+              {
+                title: "Global Leaderboard",
+                desc: "Climb the ranks and show off your problem-solving prowess.",
+                icon: "📈"
+              },
+              {
+                title: "Fast Execution",
+                desc: "Near-instant feedback with our distributed code execution engine.",
+                icon: "⚡"
+              }
+            ].map((f, i) => (
+              <div key={i} className="glass-panel" style={{ padding: "2rem", border: "1px solid var(--border-card)", borderRadius: "12px", background: "var(--bg-card-hover)" }}>
+                <div style={{
+                  fontSize: "2rem", marginBottom: "1rem", background: "rgba(124, 58, 237, 0.1)",
+                  width: "50px", height: "50px", display: "flex", alignItems: "center",
+                  justifyContent: "center", borderRadius: "12px"
+                }}>
+                  {f.icon}
+                </div>
+                <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "var(--text-heading)", marginBottom: "0.5rem" }}>
+                  {f.title}
+                </h3>
+                <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", lineHeight: 1.5 }}>
+                  {f.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   // Authenticated Dashboard
   return (

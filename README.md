@@ -6,7 +6,7 @@ Built as a Turborepo monorepo with Bun.
 
 ## Architecture
 
-```mermaidr
+```mermaid
 
 flowchart TB
     subgraph Client["Client"]
@@ -128,6 +128,42 @@ This split exists because serverless/PaaS platforms (Vercel, Render, Railway) do
 | Backend API (`apps/backend`) | Render (persistent web service) |
 | Code execution worker + RabbitMQ | VPS with Docker (e.g. Oracle free tier / Hetzner) |
 | PostgreSQL | Managed Postgres with a pooled connection string (e.g. Neon/Supabase) |
+
+### Free deployment path
+
+The cheapest/free setup for this project is:
+
+| Component | Free option | Notes |
+|---|---|---|
+| Frontend | Vercel Hobby | Deploy `apps/frontends` as the Next.js app. |
+| Backend API | Render free web service | Deploy `apps/backend` using the root `Dockerfile` or Bun build/start commands. |
+| PostgreSQL | Neon/Supabase free tier | Use the pooled `DATABASE_URL` in all services that access Prisma. |
+| RabbitMQ + worker | Oracle Cloud Free Tier VM | Needed only if you keep the Docker-based code runner. |
+
+The frontend must point at the deployed backend URL. Do not leave `API_BASE` as `http://localhost:3001` in production.
+
+### No-VPS alternative
+
+A VPS is only required because the current judging flow runs user code inside Docker containers. If you want to avoid managing a VM, replace the RabbitMQ + worker + Docker runner with a managed code execution API.
+
+Recommended free/demo-friendly option:
+
+| Component | Replacement |
+|---|---|
+| RabbitMQ | Remove it for the simple version, or keep it only for async status updates. |
+| Worker process | Replace with direct calls from the backend. |
+| `@repo/code-runner` Docker execution | Replace with Piston API or a hosted Judge0 API. |
+
+With that approach the architecture becomes:
+
+```txt
+Vercel        -> Next.js frontend
+Render        -> Express/Bun backend
+Neon/Supabase -> Postgres
+Piston/Judge0 -> Code execution
+```
+
+This is easier to deploy for free because no service needs Docker socket access. The tradeoff is less control over execution limits, supported languages, queue behavior, and reliability.
 
 ## Local development
 

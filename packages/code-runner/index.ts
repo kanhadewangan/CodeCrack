@@ -13,6 +13,7 @@ type TestCase = {
 type SubmissionMessage = {
   submissionId: string;
   problemId: string;
+  contestId?: string | null;
   code: string;
   language?: string;
 };
@@ -23,7 +24,17 @@ type SubmissionResult = {
   error?: string;
 };
 
-async function startWorker() {
+type JudgedSubmission = {
+  submissionId: string;
+  userId: string;
+  problemId: string;
+  contestId?: string | null;
+  status: "ACCEPTED" | "WRONG_ANSWER";
+  difficulty?: "EASY" | "MEDIUM" | "HARD";
+  isFirstAcceptedInContest: boolean;
+};
+
+async function startWorker(onJudged?: (submission: JudgedSubmission) => Promise<void>) {
   await consumeFromQueue(queueName, async (message) => {
 
 
@@ -40,15 +51,17 @@ async function startWorker() {
     try {
       const testCases = await getTestCasesForProblem(problemId);
       const result = await runSubmission(code, language, testCases);
-      await updateSubmissionStatus(submissionId, result);
+      const judgedSubmission = await updateSubmissionStatus(submissionId, result);
+      if (onJudged) await onJudged(judgedSubmission);
     } catch (error) {
       const err = error instanceof Error ? error.message : String(error);
       console.error(`Submission ${submissionId} failed: ${err}`);
-      await updateSubmissionStatus(submissionId, {
+      const judgedSubmission = await updateSubmissionStatus(submissionId, {
         success: false,
         output: "",
         error: err,
       });
+      if (onJudged) await onJudged(judgedSubmission);
     }
   });
 }
@@ -66,7 +79,7 @@ const getTestCasesForProblem = async (problemId: string): Promise<TestCase[]> =>
   return problem.testCases as TestCase[];
 };
 
-const updateSubmissionStatus = async (submissionId: string, result: SubmissionResult) => {
+const updateSubmissionStatus = async (submissionId: string, result: SubmissionResult): Promise<JudgedSubmission> => {
   const status = result.success ? "ACCEPTED" : "WRONG_ANSWER";
   // console.log("Updating submission status:", submissionId, status);
   
@@ -81,7 +94,7 @@ const updateSubmissionStatus = async (submissionId: string, result: SubmissionRe
     }
   });
 
-  const { userId, problemId, problems } = updatedSubmission;
+  const { userId, problemId, contestId, problems } = updatedSubmission;
 
   // 2. Fetch or create userStat
   let userStat = await prisma.userStat.findUnique({
@@ -104,6 +117,8 @@ const updateSubmissionStatus = async (submissionId: string, result: SubmissionRe
   let problemsSolved = userStat.problemsSolved;
   let rating = userStat.rating;
 
+  let isFirstAcceptedInContest = false;
+
   if (status === "ACCEPTED") {
     // Check if the user already has an accepted submission for this problem
     const existingAccepted = await prisma.submissions.findFirst({
@@ -124,6 +139,20 @@ const updateSubmissionStatus = async (submissionId: string, result: SubmissionRe
       if (problems?.difficulty === "HARD") points = 30;
       
       rating += points;
+    }
+
+    if (contestId) {
+      const existingContestAccepted = await prisma.submissions.findFirst({
+        where: {
+          userId,
+          problemId,
+          contestId,
+          status: "ACCEPTED",
+          id: { not: submissionId },
+        },
+      });
+
+      isFirstAcceptedInContest = !existingContestAccepted;
     }
   }
 
@@ -155,6 +184,16 @@ const updateSubmissionStatus = async (submissionId: string, result: SubmissionRe
       }
     });
   }
+
+  return {
+    submissionId,
+    userId,
+    problemId,
+    contestId,
+    status,
+    difficulty: problems?.difficulty,
+    isFirstAcceptedInContest,
+  };
 };
 
 async function runSubmission(code: string, language: string, testCases: TestCase[]): Promise<SubmissionResult> {

@@ -67,9 +67,8 @@ router.post("/problems", async (req: Request, res: Response) => {
                 testCases: {
                     create: testCases || []
                 },
-                hints:{
+                problemHints:{
                     create: hints || []
-
                 }
             }
         });
@@ -77,6 +76,30 @@ router.post("/problems", async (req: Request, res: Response) => {
     } catch (error) {
         console.error("Error creating problem:", error);
         res.status(500).json({ message: "Error creating problem" });
+    }
+});
+
+router.get("/hints/:problemId", async (req: Request, res: Response) => {
+    try {
+        const problemId = req.params.problemId as string;
+        const hints = await prisma.hints.findMany({
+            where: { problemId }
+        });
+        res.status(200).json(hints);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching hints" });
+    }
+});
+
+router.post("/hints", async (req: Request, res: Response) => {
+    try {
+        const { problemId, hint } = req.body;
+        const newHint = await prisma.hints.create({
+            data: { problemId, hint }
+        });
+        res.status(201).json(newHint);
+    } catch (error) {
+        res.status(500).json({ message: "Error creating hint" });
     }
 });
 

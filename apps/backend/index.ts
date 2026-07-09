@@ -1,4 +1,5 @@
 import express from "express";
+import { createServer } from "http";
 import  route from "./auth/index.ts";
 import problemsRoute from "./problems-service/index.ts";
 import {authMiddleware} from "./auth/middleware.ts";
@@ -8,6 +9,7 @@ import streaksRoute from "./code-submisson/streaks.ts";
 import cors from "cors";
 import { type Request, type Response } from "express";
 import contestRoute from "./contest/index.ts";
+import { initializeContestSockets } from "./contest/liveContest.ts";
 import client from "prom-client";
 
 // Prometheus metrics setup
@@ -19,6 +21,7 @@ collectDefaultMetrics({register:client.register});
 
 
 const app = express();
+const server = createServer(app);
 app.use(express.json());
 
 app.use(cors({
@@ -91,6 +94,8 @@ app.get("/leaderboard", async (_req: Request, res: Response) => {
       }
         });
     
-app.listen(3001, () => {
+initializeContestSockets(server);
+
+server.listen(3001, () => {
   console.log("Server is running on port 3001");
 });
