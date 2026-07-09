@@ -141,7 +141,7 @@ route.get("/get-contest-participants/:contestId", async (req: Request, res: Resp
   const { contestId } = req.params;
   try {
     const participants = await prisma.contestParticipants.findMany({
-      where: { contestId },
+      where: { contestId: contestId as string },
       include: {
         users: {
           select: {
@@ -204,7 +204,7 @@ route.get("/get-contest-problems/:contestId", async (req: Request, res: Response
   const { contestId } = req.params;
   try {
     const contestProblems = await prisma.contestProblems.findMany({
-      where: { contestId },
+      where: { contestId: contestId as string },
       include: {
         problems: {
           include: {
@@ -231,7 +231,7 @@ route.post("/remove-problem", authMiddleware, async (req: RequestWithUser, res: 
     if (!auth.ok) return res.status(auth.status).json(auth.body);
 
     const removeProblem = await prisma.contestProblems.deleteMany({
-      where: { contestId, problemId },
+      where: { contestId: contestId as string, problemId: problemId as string },
     });
     res.status(200).json({ message: "Problem removed from contest successfully", removeProblem });
   } catch (err) {
@@ -246,15 +246,15 @@ route.post("/delete-contest", authMiddleware, async (req: RequestWithUser, res: 
 });
 
 route.delete("/delete-contest/:contestId", authMiddleware, async (req: RequestWithUser, res: Response) => {
-  return deleteContest(req, res, req.params.contestId);
+  return deleteContest(req, res, req.params.contestId as string);
 });
 
 route.post("/update-contest", authMiddleware, async (req: RequestWithUser, res: Response) => {
-  return updateContest(req, res, req.body.contestId, req.body);
+  return updateContest(req, res, req.body.contestId as string, req.body);
 });
 
 route.put("/update-contest/:contestId", authMiddleware, async (req: RequestWithUser, res: Response) => {
-  return updateContest(req, res, req.params.contestId, req.body);
+  return updateContest(req, res, req.params.contestId as string, req.body);
 });
 
 route.get("/get-contest-details/:contestId", async (req: Request, res: Response) => {
@@ -262,7 +262,7 @@ route.get("/get-contest-details/:contestId", async (req: Request, res: Response)
   try {
     const authUserId = getUserIdFromHeader(req);
     const contest = await prisma.contest.findUnique({
-      where: { id: contestId },
+      where: { id: contestId as string },
       include: {
         _count: {
           select: {
@@ -302,7 +302,7 @@ route.get("/get-contest-details/:contestId", async (req: Request, res: Response)
 route.get("/get-contest-by-name/:name", async (req: Request, res: Response) => {
   const { name } = req.params;
   try {
-    const contest = await prisma.contest.findFirst({ where: { name } });
+    const contest = await prisma.contest.findFirst({ where: { name: name as string } });
     res.status(200).json({ message: "Contest retrieved successfully", contest });
   } catch (err) {
     console.error(err);
@@ -315,7 +315,7 @@ route.get("/get-contest-leaderboard/:contestId", async (req: Request, res: Respo
   const topN = Number(req.query.topN ?? 50);
 
   try {
-    const leaderboard = await getLeaderboardSnapshot(contestId, Number.isFinite(topN) ? topN : 50);
+    const leaderboard = await getLeaderboardSnapshot(contestId as string, Number.isFinite(topN) ? topN : 50);
     res.status(200).json({ leaderboard });
   } catch (err) {
     console.error(err);
@@ -327,7 +327,7 @@ route.get("/get-contest-submissions/:contestId", authMiddleware, async (req: Req
   const { contestId } = req.params;
   try {
     const submissions = await prisma.submissions.findMany({
-      where: { contestId, userId: req.user?.id },
+      where: { contestId: contestId as string, userId: req.user?.id },
       orderBy: { createdAt: "desc" },
       include: {
         problems: {
@@ -357,9 +357,9 @@ route.post("/submit-contest-problem", authMiddleware, async (req: RequestWithUse
 
   try {
     const [contest, participant, contestProblem] = await Promise.all([
-      prisma.contest.findUnique({ where: { id: contestId } }),
-      prisma.contestParticipants.findFirst({ where: { contestId, userId } }),
-      prisma.contestProblems.findFirst({ where: { contestId, problemId } }),
+      prisma.contest.findUnique({ where: { id: contestId as string } }),
+      prisma.contestParticipants.findFirst({ where: { contestId: contestId as string, userId: req.user?.id } }),
+      prisma.contestProblems.findFirst({ where: { contestId: contestId as string, problemId: problemId as string } }),
     ]);
 
     if (!contest) return res.status(404).json({ code: "CONTEST_NOT_FOUND", message: "Contest not found" });
@@ -402,7 +402,7 @@ async function deleteContest(req: RequestWithUser, res: Response, contestId?: st
     const auth = await ensureContestOwner(contestId, req.user?.id);
     if (!auth.ok) return res.status(auth.status).json(auth.body);
 
-    const deleteContest = await prisma.contest.delete({ where: { id: contestId } });
+    const deleteContest = await prisma.contest.delete({ where: { id: contestId as string } });
     res.status(200).json({ message: "Contest deleted successfully", deleteContest });
   } catch (err) {
     console.error(err);
@@ -416,7 +416,7 @@ async function updateContest(req: RequestWithUser, res: Response, contestId: str
     if (!auth.ok) return res.status(auth.status).json(auth.body);
 
     const updateContest = await prisma.contest.update({
-      where: { id: contestId },
+      where: { id: contestId as string },
       data: {
         name: typeof body.name === "string" ? body.name : undefined,
         description: typeof body.description === "string" ? body.description : undefined,
@@ -444,7 +444,7 @@ async function ensureContestOwner(contestId?: string, userId?: string) {
   }
 
   const contest = await prisma.contest.findUnique({
-    where: { id: contestId },
+    where: { id: contestId as string },
     select: { creatorId: true },
   });
 

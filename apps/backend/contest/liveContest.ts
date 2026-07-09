@@ -29,15 +29,7 @@ export type LeaderboardRow = {
 let io: Server | undefined;
 const endTimers = new Map<string, NodeJS.Timeout>();
 const broadcastTimers = new Map<string, NodeJS.Timeout>();
-const redis = new Redis(
-  REDIS_URL ?? {
-    host: process.env.REDIS_HOST ?? "localhost",
-    port: Number(process.env.REDIS_PORT ?? 6379),
-    lazyConnect: true,
-    maxRetriesPerRequest: 1,
-    enableOfflineQueue: false,
-  },
-);
+const redis = new Redis(process.env.REDIS_URL as string,);
 
 redis.on("error", (error) => {
   console.error("Contest Redis error:", error.message);

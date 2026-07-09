@@ -6,14 +6,10 @@ dotenv.config(
     }
 );
 
-console.log("Redis host:", process.env.REDIS_HOST);
-console.log("Redis port:", process.env.REDIS_PORT);
+console.log("Redis host:", process.env.REDIS_URL);
 
 
-const connection = new Redis({
-    host: process.env.REDIS_HOST ?? "localhost",
-    port: Number(process.env.REDIS_PORT ?? 6379),
-});
+const connection = new Redis(process.env.REDIS_URL as string);
 
 connection.on("error", (err) => {
     console.error("Redis connection error:", err);
