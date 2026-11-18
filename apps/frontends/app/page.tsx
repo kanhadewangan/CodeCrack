@@ -638,13 +638,14 @@ export default function Home() {
                 display: "flex",
                 alignItems: "center",
                 marginBottom: "4px",
-                paddingLeft: "30px",
+                paddingLeft: "calc(28px + 0.3rem)",
               }}
             >
               <div
                 style={{
+                  flex: 1,
                   display: "grid",
-                  gridTemplateColumns: `repeat(${totalWeeks}, 11px)`,
+                  gridTemplateColumns: `repeat(${totalWeeks}, minmax(0, 1fr))`,
                   gap: "2px",
                 }}
               >
@@ -674,7 +675,7 @@ export default function Home() {
                 style={{
                   width: "28px",
                   display: "grid",
-                  gridTemplateRows: "repeat(7, 11px)",
+                  gridTemplateRows: "repeat(7, 1fr)",
                   gap: "2px",
                   fontSize: "0.65rem",
                   color: "var(--text-muted)",
@@ -695,23 +696,22 @@ export default function Home() {
                 ))}
               </div>
 
-              <div style={{ display: "flex", gap: "2px" }}>
+              <div
+                style={{
+                  flex: 1,
+                  display: "grid",
+                  gridTemplateColumns: `repeat(${totalWeeks}, minmax(0, 1fr))`,
+                  gap: "2px",
+                }}
+              >
                 {weeks.map((week, wIdx) => (
-                  <div
-                    key={wIdx}
-                    style={{
-                      display: "grid",
-                      gridTemplateRows: "repeat(7, 11px)",
-                      gap: "2px",
-                    }}
-                  >
+                  <div key={wIdx} style={{ display: "grid", gap: "2px" }}>
                     {week.map((day, dIdx) => (
                       <div
                         key={`${wIdx}-${dIdx}`}
                         title={`${day.key}: ${day.count} submission${day.count !== 1 ? "s" : ""}`}
                         style={{
-                          width: "11px",
-                          height: "11px",
+                          aspectRatio: "1",
                           borderRadius: "2px",
                           background: getHeatColor(day.count),
                           opacity: day.inRange ? 1 : 0.3,
