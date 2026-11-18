@@ -1,7 +1,7 @@
 "use client";
 
-import { MotionConfig, motion, useInView, useReducedMotion } from "motion/react";
-import { useEffect, useRef, type ReactNode, type RefObject } from "react";
+import { MotionConfig, motion } from "motion/react";
+import { Fragment, type ReactNode } from "react";
 
 /** reducedMotion="user": Motion drops transform/layout animation when the OS asks for less motion. */
 export function MotionRoot({ children }: { children: ReactNode }) {
@@ -58,54 +58,18 @@ export function Words({ text, className, delay = 0 }: { text: string; className?
       variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: delay } } }}
     >
       {text.split(" ").map((word, i) => (
-        <span key={i} className="inline-block overflow-hidden pb-[0.12em] align-bottom">
-          <motion.span
-            className="inline-block"
-            variants={{ hidden: { y: "110%" }, show: { y: 0 } }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {word}
-          </motion.span>{" "}
-        </span>
+        <Fragment key={i}>
+          <span className="-mx-[0.08em] inline-block overflow-hidden px-[0.08em] pb-[0.12em] align-bottom">
+            <motion.span
+              className="inline-block"
+              variants={{ hidden: { y: "110%" }, show: { y: 0 } }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {word}
+            </motion.span>
+          </span>{" "}
+        </Fragment>
       ))}
     </motion.span>
   );
-}
-
-/**
- * Runs `frame` on requestAnimationFrame (capped at `fps`) only while the element is on screen
- * and the tab is visible. With reduced motion it draws a single static frame instead.
- */
-export function useFrameLoop(ref: RefObject<Element | null>, frame: (ms: number) => void, fps = 30) {
-  const inView = useInView(ref);
-  const reduce = useReducedMotion();
-  const cb = useRef(frame);
-  useEffect(() => {
-    cb.current = frame;
-  });
-  useEffect(() => {
-    if (reduce) {
-      cb.current(0);
-      return;
-    }
-    if (!inView) return;
-    let raf = 0;
-    let last = 0;
-    const loop = (ms: number) => {
-      raf = requestAnimationFrame(loop);
-      if (ms - last < 1000 / fps) return;
-      last = ms;
-      cb.current(ms);
-    };
-    const sync = () => {
-      cancelAnimationFrame(raf);
-      if (!document.hidden) raf = requestAnimationFrame(loop);
-    };
-    sync();
-    document.addEventListener("visibilitychange", sync);
-    return () => {
-      cancelAnimationFrame(raf);
-      document.removeEventListener("visibilitychange", sync);
-    };
-  }, [inView, reduce, fps]);
 }

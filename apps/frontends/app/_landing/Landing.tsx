@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Bricolage_Grotesque } from "next/font/google";
-import { Press, Reveal, Words } from "../_components/motion";
-import { code, features, leaders, problems } from "../_components/data";
+import "./landing.css";
+import { MotionRoot, Press, Reveal, Words } from "./motion";
+import { code, features, leaders, problems } from "./data";
 import { Dither } from "./Dither";
 import { ProgressRule } from "./parts";
 
@@ -43,8 +44,9 @@ function AsciiBox({ children, className = "" }: { children: ReactNode; className
 
 const ticker = "CONTEST 88 IS LIVE /// 412 CODERS IN THE ROOM /// 1,204 PROBLEMS /// NEW SET EVERY SUNDAY /// ";
 
-export default function EditorialVariant() {
+export default function Landing() {
   return (
+    <MotionRoot>
     <div className="cc-v relative flex-1 bg-[#f3efe6] font-sans text-[#111]">
       <ProgressRule />
 
@@ -101,7 +103,7 @@ export default function EditorialVariant() {
           </div>
           <Reveal delay={0.2} className="mx-auto w-full max-w-sm lg:max-w-none">
             <AsciiBox className="!p-3">
-              <Dither className="block w-full text-[#111]" />
+              <Dither className="cc-print block w-full text-[#111]" />
             </AsciiBox>
             <p className={`${label} mt-2`}>Fig. 1: a hard problem, shortly before it cracks.</p>
           </Reveal>
@@ -205,11 +207,9 @@ export default function EditorialVariant() {
         <Rule />
         <footer className="flex flex-wrap justify-between gap-3 py-6 font-mono text-xs text-neutral-700 uppercase">
           <span>CodeCrack / printed on the internet</span>
-          <Link href="/variants" className={`underline-offset-4 hover:underline ${focus}`}>
-            All variants
-          </Link>
         </footer>
       </div>
     </div>
+    </MotionRoot>
   );
 }

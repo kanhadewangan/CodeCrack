@@ -1,0 +1,32 @@
+/* Tailwind v4 for the landing page only. No preflight and no cascade layers on purpose:
+   globals.css is unlayered (`* { margin: 0; padding: 0 }`), so layered utilities would lose to it,
+   and preflight would restyle the existing pages. */
+@import "tailwindcss/theme.css";
+@import "tailwindcss/utilities.css" source(none);
+/* only scan this folder, so no utility is ever generated from (or for) the existing pages */
+@source "./";
+
+@theme {
+  /* keep the value globals.css already gives --font-mono so existing pages are unaffected */
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+}
+
+/* the few preflight rules the landing relies on, scoped and at zero specificity */
+/* without this, `border-dashed` alone gives every side a medium-width border */
+:where(.cc-v) :where(*, ::before, ::after) { border: 0 solid; }
+:where(.cc-v) :where(ul, ol) { list-style: none; }
+:where(.cc-v) :where(pre) { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+@keyframes cc-marquee { to { transform: translateX(-50%); } }
+/* the illustration prints in a few pixel rows at a time; clip-path does not affect layout */
+@keyframes cc-print { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
+
+/* CSS animation is opt-in: nothing runs under prefers-reduced-motion: reduce */
+@media (prefers-reduced-motion: no-preference) {
+  .cc-marquee { animation: cc-marquee 28s linear infinite; }
+  .cc-print { animation: cc-print 1.1s steps(18) 0.45s both; }
+}
+
+/* globals.css paints a dark scrollbar track; match it to the paper while the landing is on screen */
+html:has(.cc-v) ::-webkit-scrollbar-track { background: #f3efe6; }
+html:has(.cc-v) ::-webkit-scrollbar-thumb { background: #111; }

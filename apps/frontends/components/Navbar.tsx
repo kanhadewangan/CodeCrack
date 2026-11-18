@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { streaksApi } from "../lib/api";
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [streaks, setStreaks] = useState<number | null>(null);
@@ -28,8 +28,8 @@ export default function Navbar() {
     loadStreaks();
   }, [user]);
 
-  // /variants/* are standalone landing-page design explorations with their own chrome.
-  if (pathname?.startsWith("/variants")) return null;
+  // Logged-out visitors get the landing page at "/", which has its own header.
+  if (pathname === "/" && !user && !loading) return null;
 
   const isActive = (path: string) =>
     path === "/" ? pathname === "/" : pathname?.startsWith(path);

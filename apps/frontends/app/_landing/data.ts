@@ -1,4 +1,4 @@
-// Hardcoded sample content shared by every variant. No API calls.
+// Hardcoded sample content for the landing page. No API calls.
 export const problems = [
   { id: 1, title: "Two Sum", level: "Easy", rate: 54, solved: true },
   { id: 17, title: "Rotate a Matrix", level: "Medium", rate: 41, solved: true },
@@ -29,11 +29,4 @@ export const code = [
   "        if target - n in seen:",
   "            return [seen[target - n], i]",
   "        seen[n] = i",
-] as const;
-
-export const variants = [
-  { slug: "crt", name: "Phosphor", text: "CRT terminal: green phosphor, scanlines, a typed boot sequence and a glitching ASCII logo." },
-  { slug: "arcade", name: "Insert Coin", text: "8-bit arcade: pixel sprites, a walking bug, press-start CTA and a high-score table that counts up." },
-  { slug: "ascii-field", name: "Signal", text: "A live ASCII wave field that bends around your pointer, behind clean modern type." },
-  { slug: "editorial", name: "Broadsheet", text: "Light brutalist editorial: heavy type, box-drawing borders, a dithered illustration, quiet reveals." },
 ] as const;
