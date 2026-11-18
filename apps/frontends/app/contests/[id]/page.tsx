@@ -561,7 +561,7 @@ function ContestDetailPage() {
 
         .dot {
           background: ${meta.dot};
-          box-shadow: 0 0 6px ${meta.dot};
+          box-shadow: none;
         }
       `}</style>
     </div>
@@ -805,9 +805,9 @@ const pageStyles = `
     cursor: not-allowed;
   }
   .btn-primary {
-    background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+    background: var(--text-heading);
     border-color: transparent;
-    color: #fff;
+    color: var(--bg-base);
     box-shadow: var(--shadow-btn);
   }
   .btn-ghost {
@@ -827,7 +827,7 @@ const pageStyles = `
   .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(11, 11, 20, 0.72);
+    background: rgba(243,239,230, 0.72);
     backdrop-filter: blur(2px);
     display: flex;
     align-items: center;

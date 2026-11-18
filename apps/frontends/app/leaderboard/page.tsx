@@ -50,27 +50,24 @@ export default function LeaderboardPage() {
   const podiumConfig = [
     {
       rank: 2,
-      borderColor: "#9CA3AF",
-      glowColor: "rgba(156,163,175,0.15)",
-      avatarBg: "linear-gradient(135deg, #6B7280, #9CA3AF)",
-      ptsColor: "#C084FC",
+      avatarBg: "var(--bg-card)",
+      avatarColor: "var(--text-heading)",
+      ptsColor: "var(--purple-2)",
       height: "80px",
     },
     {
       rank: 1,
-      borderColor: "#A855F7",
-      glowColor: "rgba(168,85,247,0.25)",
-      avatarBg: "linear-gradient(135deg, #7C3AED, #C084FC)",
-      ptsColor: "#C084FC",
+      avatarBg: "var(--text-heading)",
+      avatarColor: "var(--bg-base)",
+      ptsColor: "var(--purple-2)",
       height: "110px",
       crown: true,
     },
     {
       rank: 3,
-      borderColor: "#6B7280",
-      glowColor: "rgba(107,114,128,0.1)",
-      avatarBg: "linear-gradient(135deg, #4B5563, #6B7280)",
-      ptsColor: "#C084FC",
+      avatarBg: "var(--bg-card)",
+      avatarColor: "var(--text-heading)",
+      ptsColor: "var(--purple-2)",
       height: "60px",
     },
   ];
@@ -97,6 +94,7 @@ export default function LeaderboardPage() {
       <div
         className="animate-fade-in"
         style={{
+          width: "100%",
           maxWidth: "1280px",
           margin: "0 auto",
           padding: "2rem",
@@ -148,15 +146,15 @@ export default function LeaderboardPage() {
                 style={{
                   background:
                     activeFilter === tab
-                      ? "linear-gradient(135deg, var(--purple-1), var(--purple-2))"
+                      ? "var(--text-heading)"
                       : "none",
                   border: "none",
                   color:
                     activeFilter === tab
-                      ? "#fff"
+                      ? "var(--bg-base)"
                       : "var(--text-muted)",
                   padding: "0.38rem 1rem",
-                  borderRadius: "8px",
+                  borderRadius: 0,
                   fontSize: "0.875rem",
                   fontWeight: activeFilter === tab ? "600" : "500",
                   cursor: "pointer",
@@ -188,8 +186,8 @@ export default function LeaderboardPage() {
             {top3.length > 0 && (
               <div
                 style={{
-                  background: "linear-gradient(180deg, rgba(124,58,237,0.08) 0%, rgba(11,11,20,0) 100%)",
-                  border: "1px solid var(--border-card)",
+                  background: "var(--bg-card)",
+                  border: "2px solid var(--border)",
                   borderRadius: "var(--radius-xl)",
                   padding: "2rem 2rem 0",
                   display: "flex",
@@ -201,22 +199,6 @@ export default function LeaderboardPage() {
                   overflow: "hidden",
                 }}
               >
-                {/* Background glow */}
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "0",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    width: "300px",
-                    height: "200px",
-                    background:
-                      "radial-gradient(ellipse, rgba(124,58,237,0.2) 0%, transparent 70%)",
-                    pointerEvents: "none",
-                    filter: "blur(30px)",
-                  }}
-                />
-
                 {podiumOrder.map((item, pIdx) => {
                   if (!item) return null;
                   const cfg = podiumConfig[pIdx];
@@ -247,16 +229,14 @@ export default function LeaderboardPage() {
                         style={{
                           width: isFirst ? "80px" : "64px",
                           height: isFirst ? "80px" : "64px",
-                          borderRadius: "50%",
                           background: cfg.avatarBg,
-                          border: `3px solid ${cfg.borderColor}`,
-                          boxShadow: `0 0 20px ${cfg.glowColor}`,
+                          border: "2px solid var(--border)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           fontSize: isFirst ? "1.5rem" : "1.1rem",
                           fontWeight: "700",
-                          color: "#fff",
+                          color: cfg.avatarColor,
                           fontFamily: "var(--font-heading)",
                         }}
                       >
@@ -299,10 +279,7 @@ export default function LeaderboardPage() {
                         style={{
                           width: "100%",
                           height: cfg.height,
-                          background: isFirst
-                            ? "linear-gradient(180deg, rgba(124,58,237,0.3) 0%, rgba(124,58,237,0.15) 100%)"
-                            : "rgba(255,255,255,0.04)",
-                          border: `1px solid ${isFirst ? "rgba(124,58,237,0.4)" : "rgba(255,255,255,0.06)"}`,
+                          background: isFirst ? "var(--purple-1)" : "var(--text-heading)",
                           borderRadius: "var(--radius-md) var(--radius-md) 0 0",
                           display: "flex",
                           alignItems: "center",
@@ -310,7 +287,7 @@ export default function LeaderboardPage() {
                           fontSize: "2rem",
                           fontWeight: "700",
                           fontFamily: "var(--font-heading)",
-                          color: isFirst ? "rgba(157,92,246,0.7)" : "rgba(255,255,255,0.2)",
+                          color: "var(--bg-base)",
                           marginTop: "0.25rem",
                         }}
                       >
@@ -368,7 +345,7 @@ export default function LeaderboardPage() {
                   <tr
                     style={{
                       borderBottom: "1px solid var(--border-soft)",
-                      background: "rgba(255,255,255,0.01)",
+                      background: "rgba(17,17,17,0.01)",
                     }}
                   >
                     {["Rank", "User", "Solved", "Country", "Score"].map(
@@ -427,7 +404,7 @@ export default function LeaderboardPage() {
                         key={item.userId}
                         className="table-row-hover"
                         style={{
-                          borderBottom: "1px solid rgba(255,255,255,0.03)",
+                          borderBottom: "1px solid rgba(17,17,17,0.03)",
                           transition: "background 0.15s",
                         }}
                       >
@@ -449,15 +426,13 @@ export default function LeaderboardPage() {
                               style={{
                                 width: "30px",
                                 height: "30px",
-                                borderRadius: "50%",
-                                background:
-                                  "linear-gradient(135deg, rgba(124,58,237,0.4), rgba(157,92,246,0.6))",
+                                background: "var(--text-heading)",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
                                 fontSize: "0.75rem",
                                 fontWeight: "700",
-                                color: "#fff",
+                                color: "var(--bg-base)",
                                 flexShrink: 0,
                               }}
                             >

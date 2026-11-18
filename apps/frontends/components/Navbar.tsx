@@ -51,10 +51,8 @@ export default function Navbar() {
           position: "sticky",
           top: 0,
           zIndex: 100,
-          background: "rgba(11,11,20,0.88)",
-          backdropFilter: "blur(18px)",
-          WebkitBackdropFilter: "blur(18px)",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          background: "var(--bg-base)",
+          borderBottom: "2px solid var(--border)",
           marginBottom: "0",
         }}
       >
@@ -85,15 +83,15 @@ export default function Navbar() {
               style={{
                 width: "30px",
                 height: "30px",
-                borderRadius: "8px",
-                background: "linear-gradient(135deg, #7C3AED, #A855F7)",
+                borderRadius: 0,
+                background: "var(--text-heading)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontSize: "0.85rem",
-                boxShadow: "0 0 12px rgba(124,58,237,0.5)",
+                boxShadow: "3px 3px 0 var(--purple-1)",
                 fontWeight: "700",
-                color: "#fff",
+                color: "var(--bg-base)",
               }}
             >
               {"</>"}
@@ -101,8 +99,8 @@ export default function Navbar() {
             <span
               style={{
                 fontFamily: "var(--font-heading)",
-                fontSize: "1.15rem",
-                fontWeight: "700",
+                fontSize: "1.25rem",
+                fontWeight: "800",
                 color: "var(--text-heading)",
                 letterSpacing: "-0.02em",
               }}
@@ -127,14 +125,17 @@ export default function Navbar() {
                   href={link.href}
                   style={{
                     padding: "0.35rem 0.85rem",
-                    borderRadius: "7px",
-                    fontSize: "0.875rem",
-                    fontWeight: active ? "600" : "500",
+                    borderRadius: 0,
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    fontWeight: active ? "700" : "500",
                     color: active ? "var(--text-heading)" : "var(--text-muted)",
                     textDecoration: "none",
                     position: "relative",
                     transition: "color 0.18s",
-                    borderBottom: active ? "2px solid var(--purple-2)" : "2px solid transparent",
+                    borderBottom: active ? "2px solid var(--purple-1)" : "2px solid transparent",
                     paddingBottom: "calc(0.35rem - 2px)",
                   }}
                 >
@@ -172,11 +173,11 @@ export default function Navbar() {
                     gap: "0.25rem",
                     fontSize: "0.8rem",
                     fontWeight: "700",
-                    color: "#F97316",
+                    color: "var(--purple-2)",
+                    fontFamily: "var(--font-mono)",
                     padding: "0.3rem 0.65rem",
                     borderRadius: "var(--radius-pill)",
-                    background: "rgba(249, 115, 22, 0.1)",
-                    border: "1px solid rgba(249,115,22,0.2)",
+                    border: "1.5px solid var(--purple-2)",
                   }}
                   className="hide-mobile"
                 >
@@ -192,7 +193,7 @@ export default function Navbar() {
                     cursor: "pointer",
                     color: "var(--text-muted)",
                     padding: "0.35rem",
-                    borderRadius: "6px",
+                    borderRadius: 0,
                     display: "flex",
                     alignItems: "center",
                     transition: "color 0.18s",
@@ -210,17 +211,15 @@ export default function Navbar() {
                   style={{
                     width: "32px",
                     height: "32px",
-                    borderRadius: "50%",
-                    background: "linear-gradient(135deg, #7C3AED, #C084FC)",
+                    background: "var(--text-heading)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     fontSize: "0.8rem",
                     fontWeight: "700",
-                    color: "#fff",
+                    color: "var(--bg-base)",
                     flexShrink: 0,
                     cursor: "pointer",
-                    border: "2px solid rgba(157,92,246,0.3)",
                   }}
                   title={user.email}
                 >
@@ -270,8 +269,8 @@ export default function Navbar() {
         {mobileOpen && (
           <div
             style={{
-              borderTop: "1px solid rgba(255,255,255,0.06)",
-              background: "rgba(11,11,20,0.98)",
+              borderTop: "2px solid var(--border)",
+              background: "var(--bg-base)",
               padding: "1rem 1.5rem 1.5rem",
               display: "flex",
               flexDirection: "column",

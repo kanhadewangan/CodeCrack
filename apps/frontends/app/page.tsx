@@ -193,11 +193,11 @@ export default function Home() {
     .filter(Boolean) as Array<{ index: number; label: string }>;
 
   const getHeatColor = (count: number) => {
-    if (count === 0) return "rgba(255,255,255,0.04)";
-    if (count <= 1) return "rgba(124,58,237,0.35)";
-    if (count <= 3) return "rgba(124,58,237,0.55)";
-    if (count <= 6) return "rgba(157,92,246,0.75)";
-    return "rgba(192,132,252,0.9)";
+    if (count === 0) return "rgba(17,17,17,0.04)";
+    if (count <= 1) return "rgba(215,51,26,0.35)";
+    if (count <= 3) return "rgba(215,51,26,0.55)";
+    if (count <= 6) return "rgba(215,51,26,0.75)";
+    return "rgba(215,51,26,0.9)";
   };
 
 
@@ -222,13 +222,13 @@ export default function Home() {
           padding: "4rem 2rem",
         }}
       >
-        <div className="skeleton-block" style={{ width: "280px", height: "32px", borderRadius: "999px", marginBottom: "2.5rem" }} />
+        <div className="skeleton-block" style={{ width: "280px", height: "32px", borderRadius: 0, marginBottom: "2.5rem" }} />
 
-        <div className="skeleton-block" style={{ width: "min(700px, 80vw)", height: "3.2rem", borderRadius: "8px", marginBottom: "1rem" }} />
-        <div className="skeleton-block" style={{ width: "min(500px, 60vw)", height: "3.2rem", borderRadius: "8px", marginBottom: "1.5rem" }} />
+        <div className="skeleton-block" style={{ width: "min(700px, 80vw)", height: "3.2rem", borderRadius: 0, marginBottom: "1rem" }} />
+        <div className="skeleton-block" style={{ width: "min(500px, 60vw)", height: "3.2rem", borderRadius: 0, marginBottom: "1.5rem" }} />
 
-        <div className="skeleton-block" style={{ width: "min(560px, 85vw)", height: "1.2rem", borderRadius: "6px", marginBottom: "0.6rem" }} />
-        <div className="skeleton-block" style={{ width: "min(460px, 70vw)", height: "1.2rem", borderRadius: "6px", marginBottom: "2.5rem" }} />
+        <div className="skeleton-block" style={{ width: "min(560px, 85vw)", height: "1.2rem", borderRadius: 0, marginBottom: "0.6rem" }} />
+        <div className="skeleton-block" style={{ width: "min(460px, 70vw)", height: "1.2rem", borderRadius: 0, marginBottom: "2.5rem" }} />
 
         <div style={{ display: "flex", gap: "1rem", marginBottom: "3rem" }}>
           <div className="skeleton-block" style={{ width: "170px", height: "48px", borderRadius: "var(--radius-md, 8px)" }} />
@@ -236,8 +236,8 @@ export default function Home() {
         </div>
 
         <div style={{ display: "flex", gap: "2rem", alignItems: "center" }}>
-          <div className="skeleton-block" style={{ width: "140px", height: "16px", borderRadius: "4px" }} />
-          <div className="skeleton-block" style={{ width: "180px", height: "16px", borderRadius: "4px" }} />
+          <div className="skeleton-block" style={{ width: "140px", height: "16px", borderRadius: 0 }} />
+          <div className="skeleton-block" style={{ width: "180px", height: "16px", borderRadius: 0 }} />
         </div>
       </section>
 
@@ -250,8 +250,8 @@ export default function Home() {
           width: "100%",
         }}
       >
-        <div className="skeleton-block" style={{ width: "160px", height: "14px", borderRadius: "4px", marginBottom: "0.75rem" }} />
-        <div className="skeleton-block" style={{ width: "min(480px, 70vw)", height: "2.4rem", borderRadius: "8px", marginBottom: "3rem" }} />
+        <div className="skeleton-block" style={{ width: "160px", height: "14px", borderRadius: 0, marginBottom: "0.75rem" }} />
+        <div className="skeleton-block" style={{ width: "min(480px, 70vw)", height: "2.4rem", borderRadius: 0, marginBottom: "3rem" }} />
 
         <div
           style={{
@@ -266,10 +266,10 @@ export default function Home() {
         >
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="feature-card" style={{ borderRadius: 0, border: "none" }}>
-              <div className="skeleton-block" style={{ width: "32px", height: "32px", borderRadius: "8px", marginBottom: "0.75rem" }} />
-              <div className="skeleton-block" style={{ width: "60%", height: "16px", borderRadius: "4px", marginBottom: "0.5rem" }} />
-              <div className="skeleton-block" style={{ width: "90%", height: "14px", borderRadius: "4px", marginBottom: "0.35rem" }} />
-              <div className="skeleton-block" style={{ width: "75%", height: "14px", borderRadius: "4px" }} />
+              <div className="skeleton-block" style={{ width: "32px", height: "32px", borderRadius: 0, marginBottom: "0.75rem" }} />
+              <div className="skeleton-block" style={{ width: "60%", height: "16px", borderRadius: 0, marginBottom: "0.5rem" }} />
+              <div className="skeleton-block" style={{ width: "90%", height: "14px", borderRadius: 0, marginBottom: "0.35rem" }} />
+              <div className="skeleton-block" style={{ width: "75%", height: "14px", borderRadius: 0 }} />
             </div>
           ))}
         </div>
@@ -282,6 +282,7 @@ export default function Home() {
   return (
     <div
       style={{
+        width: "100%",
         maxWidth: "1280px",
         margin: "0 auto",
         padding: "2rem",
@@ -343,7 +344,7 @@ export default function Home() {
                 style={{
                   fontSize: "0.9rem",
                   fontWeight: "700",
-                  color: "#F97316",
+                  color: "var(--purple-2)",
                 }}
               >
                 
@@ -369,7 +370,7 @@ export default function Home() {
                 width: "32px",
                 height: "32px",
                 borderRadius: "50%",
-                background: `conic-gradient(var(--purple-2) ${Math.min(solvedCount / 5, 1) * 360}deg, rgba(255,255,255,0.06) 0deg)`,
+                background: `conic-gradient(var(--purple-2) ${Math.min(solvedCount / 5, 1) * 360}deg, rgba(17,17,17,0.06) 0deg)`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -495,7 +496,7 @@ export default function Home() {
                 style={{
                   width: "10px",
                   height: "10px",
-                  borderRadius: "2px",
+                  borderRadius: 0,
                   background: getHeatColor(level === 0 ? 0 : level * 2),
                 }}
               />
@@ -591,7 +592,7 @@ export default function Home() {
                         style={{
                           width: "11px",
                           height: "11px",
-                          borderRadius: "2px",
+                          borderRadius: 0,
                           background: getHeatColor(day.count),
                           opacity: day.inRange ? 1 : 0.3,
                           cursor: "default",
@@ -712,7 +713,7 @@ export default function Home() {
                       className="progress-bar-fill"
                       style={{
                         width: "0%",
-                        background: "linear-gradient(90deg, var(--purple-1), var(--purple-3))",
+                        background: "var(--purple-1)",
                       }}
                     />
                   </div>
@@ -767,7 +768,7 @@ export default function Home() {
                 <tr
                   style={{
                     borderBottom: "1px solid var(--border-soft)",
-                    background: "rgba(255,255,255,0.01)",
+                    background: "rgba(17,17,17,0.01)",
                   }}
                 >
                   {["Problem", "Language", "Status"].map((h) => (
@@ -802,7 +803,7 @@ export default function Home() {
                       key={sub.id}
                       className="table-row-hover"
                       style={{
-                        borderBottom: "1px solid rgba(255,255,255,0.03)",
+                        borderBottom: "1px solid rgba(17,17,17,0.03)",
                         transition: "background 0.15s",
                       }}
                     >

@@ -352,7 +352,7 @@ export default function ProblemDetailsPage({
                 marginLeft: "auto",
                 border: "1px solid rgba(34,197,94,0.24)",
                 color: "var(--easy)",
-                borderRadius: "999px",
+                borderRadius: 0,
                 padding: "0.18rem 0.55rem",
                 fontSize: "0.68rem",
                 fontWeight: 700,
@@ -459,9 +459,9 @@ export default function ProblemDetailsPage({
                           style={{
                             fontSize: "0.68rem",
                             padding: "0.2rem 0.55rem",
-                            borderRadius: "4px",
-                            background: "rgba(255,255,255,0.04)",
-                            border: "1px solid rgba(255,255,255,0.07)",
+                            borderRadius: 0,
+                            background: "rgba(17,17,17,0.04)",
+                            border: "1px solid rgba(17,17,17,0.07)",
                             color: "var(--text-muted)",
                           }}
                         >
@@ -521,7 +521,7 @@ export default function ProblemDetailsPage({
                           border: "1px solid var(--border-soft)",
                           color: "var(--text-body)",
                           padding: "0.75rem",
-                          borderRadius: "8px",
+                          borderRadius: 0,
                           resize: "vertical",
                           minHeight: "80px",
                           fontFamily: "var(--font-body)",
@@ -648,11 +648,11 @@ export default function ProblemDetailsPage({
                           <div style={{ marginTop: "0.75rem" }}>
                             <pre
                               style={{
-                                background: "rgba(0,0,0,0.5)",
+                                background: "rgba(17,17,17,0.5)",
                                 border: "1px solid rgba(34,197,94,0.2)",
                                 borderLeft: "3px solid var(--easy)",
                                 padding: "0.75rem",
-                                borderRadius: "6px",
+                                borderRadius: 0,
                                 fontFamily: "var(--font-mono)",
                                 fontSize: "0.72rem",
                                 color: "var(--easy)",
@@ -739,7 +739,7 @@ export default function ProblemDetailsPage({
                   gap: "0.4rem",
                   background: "var(--bg-card)",
                   border: "1px solid var(--border-card)",
-                  borderRadius: "8px",
+                  borderRadius: 0,
                   padding: "0.25rem 0.4rem 0.25rem 0.65rem",
                   fontSize: "0.82rem",
                   color: "var(--text-heading)",
@@ -773,10 +773,10 @@ export default function ProblemDetailsPage({
                     appearance: "none",
                   }}
                 >
-                  <option value="javascript" style={{ background: "#111119" }}>
+                  <option value="javascript">
                     JavaScript
                   </option>
-                  <option value="python" style={{ background: "#111119" }}>
+                  <option value="python">
                     Python
                   </option>
                 </select>
@@ -807,8 +807,8 @@ export default function ProblemDetailsPage({
                           width: "12px",
                           height: "12px",
                           borderRadius: "50%",
-                          border: "2px solid rgba(255,255,255,0.3)",
-                          borderTopColor: "#fff",
+                          border: "2px solid rgba(17,17,17,0.3)",
+                          borderTopColor: "var(--purple-1)",
                           animation: "spin 0.7s linear infinite",
                         }}
                       />
@@ -833,10 +833,10 @@ export default function ProblemDetailsPage({
                 style={{
                   width: "100%",
                   height: "100%",
-                  background: "#09090F",
+                  background: "#111111",
                   fontFamily: "var(--font-mono)",
                   fontSize: "0.85rem",
-                  color: "#A5B4FC",
+                  color: "#f3efe6",
                   padding: "1.1rem 1.25rem",
                   border: "none",
                   outline: "none",
@@ -915,12 +915,12 @@ export default function ProblemDetailsPage({
                       </div>
                       <div
                         style={{
-                          background: "rgba(0,0,0,0.35)",
-                          borderRadius: "6px",
+                          background: "rgba(17,17,17,0.35)",
+                          borderRadius: 0,
                           padding: "0.5rem 0.75rem",
                           fontFamily: "var(--font-mono)",
                           fontSize: "0.72rem",
-                          color: "rgba(255,255,255,0.6)",
+                          color: "rgba(17,17,17,0.6)",
                           maxHeight: "100px",
                           overflowY: "auto",
                           lineHeight: 1.6,
@@ -982,7 +982,7 @@ export default function ProblemDetailsPage({
                     animationDelay: `${Math.random() * 0.5}s`,
                     background: [
                       "#22c55e",
-                      "#a5b4fc",
+                      "#f3efe6",
                       "#f0db4f",
                       "#f472b6",
                       "#38bdf8",
@@ -1051,10 +1051,10 @@ export default function ProblemDetailsPage({
           position: relative;
           background: var(--bg-elevated, #14141c);
           border: 1px solid rgba(34, 197, 94, 0.35);
-          border-radius: 16px;
+          border-radius: 0;
           padding: 2.5rem 3rem;
           text-align: center;
-          box-shadow: 0 0 60px rgba(34, 197, 94, 0.18);
+          box-shadow: 8px 8px 0 var(--easy);
           animation: accepted-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
           overflow: hidden;
           min-width: 260px;
@@ -1118,7 +1118,7 @@ export default function ProblemDetailsPage({
           width: 6px;
           height: 12px;
           opacity: 0.9;
-          border-radius: 2px;
+          border-radius: 0;
           animation: confetti-fall 1.8s ease-in forwards;
         }
       `}</style>

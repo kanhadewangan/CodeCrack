@@ -83,11 +83,11 @@ export default function ProblemsPage() {
         >
           <div
             className="skeleton-block"
-            style={{ flex: 1, height: "44px", borderRadius: "10px" }}
+            style={{ flex: 1, height: "44px", borderRadius: 0 }}
           />
           <div
             className="skeleton-block"
-            style={{ width: "260px", height: "44px", borderRadius: "10px" }}
+            style={{ width: "260px", height: "44px", borderRadius: 0 }}
           />
         </div>
 
@@ -148,29 +148,29 @@ export default function ProblemsPage() {
                 style={{
                   width: `${55 + ((i * 13) % 30)}%`,
                   height: "14px",
-                  borderRadius: "4px",
+                  borderRadius: 0,
                 }}
               />
 
               {/* difficulty pill */}
               <div
                 className="skeleton-block"
-                style={{ width: "64px", height: "22px", borderRadius: "999px" }}
+                style={{ width: "64px", height: "22px", borderRadius: 0 }}
               />
 
               {/* topic tags */}
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                <div className="skeleton-block" style={{ width: "50px", height: "22px", borderRadius: "6px" }} />
-                <div className="skeleton-block" style={{ width: "70px", height: "22px", borderRadius: "6px" }} />
+                <div className="skeleton-block" style={{ width: "50px", height: "22px", borderRadius: 0 }} />
+                <div className="skeleton-block" style={{ width: "70px", height: "22px", borderRadius: 0 }} />
                 {i % 2 === 0 && (
-                  <div className="skeleton-block" style={{ width: "60px", height: "22px", borderRadius: "6px" }} />
+                  <div className="skeleton-block" style={{ width: "60px", height: "22px", borderRadius: 0 }} />
                 )}
               </div>
 
               {/* action button */}
               <div
                 className="skeleton-block"
-                style={{ width: "70px", height: "32px", borderRadius: "999px", justifySelf: "start" }}
+                style={{ width: "70px", height: "32px", borderRadius: 0, justifySelf: "start" }}
               />
             </div>
           ))}
@@ -182,7 +182,7 @@ export default function ProblemsPage() {
           style={{
             width: "140px",
             height: "14px",
-            borderRadius: "4px",
+            borderRadius: 0,
             margin: "1.5rem auto 0",
           }}
         />
@@ -362,18 +362,18 @@ export default function ProblemsPage() {
                     style={{
                       background:
                         difficultyFilter === opt.value
-                          ? "rgba(157,92,246,0.15)"
+                          ? "rgba(215,51,26,0.15)"
                           : "none",
                       border:
                         difficultyFilter === opt.value
-                          ? "1px solid rgba(157,92,246,0.3)"
+                          ? "1px solid rgba(215,51,26,0.3)"
                           : "1px solid transparent",
                       color:
                         difficultyFilter === opt.value
                           ? "var(--purple-3)"
                           : "var(--text-muted)",
                       padding: "0.3rem 0.75rem",
-                      borderRadius: "8px",
+                      borderRadius: 0,
                       fontSize: "0.82rem",
                       fontWeight: difficultyFilter === opt.value ? "600" : "500",
                       cursor: "pointer",
@@ -407,7 +407,7 @@ export default function ProblemsPage() {
                   <tr
                     style={{
                       borderBottom: "1px solid var(--border-soft)",
-                      background: "rgba(255,255,255,0.01)",
+                      background: "rgba(17,17,17,0.01)",
                     }}
                   >
                     {[
@@ -460,7 +460,7 @@ export default function ProblemsPage() {
                           style={{
                             borderBottom:
                               idx < filteredProblems.length - 1
-                                ? "1px solid rgba(255,255,255,0.03)"
+                                ? "1px solid rgba(17,17,17,0.03)"
                                 : "none",
                             transition: "background 0.15s",
                           }}
@@ -484,7 +484,7 @@ export default function ProblemsPage() {
                             ) : (
                               <span
                                 style={{
-                                  color: "rgba(255,255,255,0.1)",
+                                  color: "rgba(17,17,17,0.1)",
                                   fontSize: "0.85rem",
                                 }}
                               >
@@ -536,10 +536,10 @@ export default function ProblemsPage() {
                                   style={{
                                     fontSize: "0.68rem",
                                     padding: "0.15rem 0.45rem",
-                                    borderRadius: "4px",
-                                    background: "rgba(255,255,255,0.04)",
+                                    borderRadius: 0,
+                                    background: "rgba(17,17,17,0.04)",
                                     border:
-                                      "1px solid rgba(255,255,255,0.06)",
+                                      "1px solid rgba(17,17,17,0.06)",
                                     color: "var(--text-muted)",
                                   }}
                                 >

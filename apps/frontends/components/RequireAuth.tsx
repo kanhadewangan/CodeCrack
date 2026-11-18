@@ -35,7 +35,7 @@ if (loading || !user) {
       />
       <div
         className="skeleton-block"
-        style={{ width: "220px", height: "14px", borderRadius: "4px" }}
+        style={{ width: "220px", height: "14px", borderRadius: 0 }}
       />
       <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: "0.25rem" }}>
         Redirecting to landing page...

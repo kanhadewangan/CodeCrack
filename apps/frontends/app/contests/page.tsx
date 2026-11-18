@@ -419,8 +419,8 @@ function ContestsListPage() {
           transition: color 0.15s ease, background 0.15s ease;
         }
         .tab-active {
-          background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
-          color: #fff;
+          background: var(--text-heading);
+          color: var(--bg-base);
         }
 
         .btn {
@@ -446,9 +446,9 @@ function ContestsListPage() {
           cursor: not-allowed;
         }
         .btn-primary {
-          background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+          background: var(--text-heading);
           border-color: transparent;
-          color: #fff;
+          color: var(--bg-base);
           box-shadow: var(--shadow-btn);
         }
         .btn-ghost {
@@ -491,7 +491,7 @@ function ContestsListPage() {
         }
         .sk-line {
           height: 12px;
-          border-radius: 4px;
+          border-radius: 0;
           background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-surface) 37%, var(--bg-elevated) 63%);
           background-size: 400% 100%;
           animation: shimmer 1.4s ease infinite;
@@ -517,7 +517,7 @@ function ContestsListPage() {
         .overlay {
           position: fixed;
           inset: 0;
-          background: rgba(11, 11, 20, 0.72);
+          background: rgba(243,239,230, 0.72);
           backdrop-filter: blur(2px);
           display: flex;
           align-items: center;
@@ -686,7 +686,7 @@ function ContestCard({
         }
         .ccard:hover {
           border-color: var(--border);
-          box-shadow: var(--shadow-card), var(--shadow-glow);
+          box-shadow: 6px 6px 0 var(--purple-1);
         }
         .ccard-top {
           display: flex;
@@ -708,7 +708,7 @@ function ContestCard({
           height: 7px;
           border-radius: 50%;
           background: ${meta.dot};
-          box-shadow: 0 0 6px ${meta.dot};
+          box-shadow: none;
         }
         .countdown {
           font-size: 13px;
@@ -778,9 +778,9 @@ function ContestCard({
           cursor: not-allowed;
         }
         .btn-primary {
-          background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+          background: var(--text-heading);
           border-color: transparent;
-          color: #fff;
+          color: var(--bg-base);
         }
         .btn-ghost {
           background: transparent;

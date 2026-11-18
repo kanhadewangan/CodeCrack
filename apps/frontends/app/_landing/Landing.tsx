@@ -50,7 +50,7 @@ export default function Landing() {
     <div className="cc-v relative flex-1 bg-[#f3efe6] font-sans text-[#111]">
       <ProgressRule />
 
-      <div className="mx-auto max-w-6xl px-4 sm:px-8">
+      <div className="mx-auto max-w-[90rem] px-4 sm:px-8">
         <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 py-5">
           <span className={`${display.className} text-2xl font-extrabold tracking-tight`}>CodeCrack</span>
           <span className={`${label} hidden md:inline`}>Vol. 01 / Issue 204 / The daily problem</span>
@@ -68,13 +68,18 @@ export default function Landing() {
         </header>
         <Rule />
 
-        <section className="grid items-end gap-8 py-10 sm:py-16 lg:grid-cols-[1.5fr_1fr]">
+        <section className="grid items-center gap-8 py-10 sm:py-14 lg:grid-cols-[1.5fr_1fr]">
           <div>
             <p className={label}>Competitive coding, without the noise</p>
             <h1
-              className={`${display.className} mt-4 text-[clamp(3rem,11vw,8.5rem)] leading-[0.86] font-extrabold tracking-tighter text-[#111] uppercase`}
+              className={`${display.className} mt-4 text-[clamp(2.5rem,14vw,8.5rem)] lg:text-[clamp(4rem,8.6vw,8.25rem)] leading-[0.86] font-extrabold tracking-tighter text-[#111] uppercase`}
             >
-              <Words text="Think hard. Type less. Rank up." />
+              {/* three set lines; sized so each fits its column without wrapping to one word per line */}
+              {["Think hard.", "Type less.", "Rank up."].map((line, i) => (
+                <span key={line} className="block">
+                  <Words text={line} delay={i * 0.15} />
+                </span>
+              ))}
             </h1>
             <Reveal delay={0.5}>
               <p className="mt-6 max-w-lg text-lg leading-relaxed text-neutral-800">
@@ -119,7 +124,7 @@ export default function Landing() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 sm:px-8">
+      <div className="mx-auto max-w-[90rem] px-4 sm:px-8">
         <section aria-labelledby="ed-features" className="py-14 sm:py-20">
           <h2 id="ed-features" className={h2}>
             The four parts

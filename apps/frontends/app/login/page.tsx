@@ -34,17 +34,13 @@ export default function LoginPage() {
       <div className="glass-panel animate-fade-in" style={{
         width: "100%",
         maxWidth: "400px",
-        padding: "2.5rem",
-        boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.4)"
+        padding: "2.5rem"
       }}>
         <h2 style={{
           marginBottom: "0.5rem",
           fontSize: "1.75rem",
           fontWeight: "bold",
-          textAlign: "center",
-          background: "linear-gradient(135deg, #a78bfa, #818cf8)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent"
+          textAlign: "center"
         }}>
           Welcome Back
         </h2>
@@ -54,16 +50,16 @@ export default function LoginPage() {
           textAlign: "center",
           marginBottom: "2rem"
         }}>
-          Sign in to your CodeJudge account
+          Sign in to your CodeCrack account
         </p>
 
         {error && (
-          <div style={{
-            background: "rgba(239, 68, 68, 0.1)",
-            border: "1px solid rgba(239, 68, 68, 0.2)",
+          <div role="alert" style={{
+            background: "var(--hard-bg)",
+            border: "1.5px solid var(--hard)",
             color: "var(--hard)",
             padding: "0.75rem",
-            borderRadius: "6px",
+            borderRadius: 0,
             fontSize: "0.85rem",
             marginBottom: "1.5rem",
             textAlign: "center"

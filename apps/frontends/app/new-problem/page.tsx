@@ -76,9 +76,6 @@ export default function NewProblemPage() {
         <h1 style={{
           fontSize: "2rem",
           fontWeight: "800",
-          background: "linear-gradient(135deg, var(--primary), var(--accent))",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
           marginBottom: "0.5rem"
         }}>
           Create New Problem
@@ -94,7 +91,7 @@ export default function NewProblemPage() {
           border: "1px solid rgba(16, 185, 129, 0.2)",
           color: "var(--easy)",
           padding: "1rem",
-          borderRadius: "8px",
+          borderRadius: 0,
           textAlign: "center",
           marginBottom: "2rem",
           fontWeight: "600"
@@ -109,7 +106,7 @@ export default function NewProblemPage() {
           border: "1px solid rgba(239, 68, 68, 0.2)",
           color: "var(--hard)",
           padding: "1rem",
-          borderRadius: "8px",
+          borderRadius: 0,
           textAlign: "center",
           marginBottom: "2rem"
         }}>
@@ -141,7 +138,7 @@ export default function NewProblemPage() {
               className="input-field"
               value={difficulty}
               onChange={(e) => setDifficulty(e.target.value)}
-              style={{ background: "#0F172A", cursor: "pointer" }}
+              style={{ background: "var(--bg-input)", cursor: "pointer" }}
             >
               <option value="EASY">EASY</option>
               <option value="MEDIUM">MEDIUM</option>
@@ -188,7 +185,7 @@ export default function NewProblemPage() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             {testCases.map((tc, idx) => (
-              <div key={idx} className="glass-card animate-fade-in" style={{ padding: "1.25rem", border: "1px solid rgba(255,255,255,0.05)" }}>
+              <div key={idx} className="glass-card animate-fade-in" style={{ padding: "1.25rem", border: "1px solid rgba(17,17,17,0.05)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
                   <span style={{ fontSize: "0.85rem", fontWeight: "bold", color: "var(--primary)" }}>
                     TestCase #{idx + 1}

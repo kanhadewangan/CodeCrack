@@ -26,7 +26,3 @@
   .cc-marquee { animation: cc-marquee 28s linear infinite; }
   .cc-print { animation: cc-print 1.1s steps(18) 0.45s both; }
 }
-
-/* globals.css paints a dark scrollbar track; match it to the paper while the landing is on screen */
-html:has(.cc-v) ::-webkit-scrollbar-track { background: #f3efe6; }
-html:has(.cc-v) ::-webkit-scrollbar-thumb { background: #111; }
