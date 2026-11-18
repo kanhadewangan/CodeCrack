@@ -28,6 +28,9 @@ export default function Navbar() {
     loadStreaks();
   }, [user]);
 
+  // /variants/* are standalone landing-page design explorations with their own chrome.
+  if (pathname?.startsWith("/variants")) return null;
+
   const isActive = (path: string) =>
     path === "/" ? pathname === "/" : pathname?.startsWith(path);
 
