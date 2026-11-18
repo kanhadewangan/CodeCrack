@@ -2,34 +2,11 @@ import express from "express";
 import {prisma} from "@repo/db";
 import {publishToQueue} from "@repo/queue"
 import {type Request, type Response, type NextFunction} from "express";
-import {startWorker} from "@repo/code-runner"
 import { rateLimiter } from "@reoo/ratelimit";
 import dotenv from "dotenv";
-import { recordContestScore } from "../contest/liveContest";
 dotenv.config();
 
 const router = express.Router();
-
-startWorker(async (submission) => {
-  if (submission.status !== "ACCEPTED" || !submission.contestId || !submission.isFirstAcceptedInContest) return;
-
-  const pointsByDifficulty = {
-    EASY: 100,
-    MEDIUM: 200,
-    HARD: 300,
-  };
-
-  const scoreDelta = pointsByDifficulty[submission.difficulty ?? "EASY"];
-  await recordContestScore({
-    contestId: submission.contestId,
-    userId: submission.userId,
-    scoreDelta,
-    penalty: 0,
-  });
-}).catch((error) => {
-  console.error("Failed to start submission worker", error);
-  process.exit(1);
-});
 
 router.get("/submissions", async (req: Request, res: Response) => {
     const submissions = await prisma.submissions.findMany({
@@ -69,22 +46,19 @@ router.get("/submissions/:id", async (req: Request, res: Response) => {
 router.post("/submission", async (req: Request, res: Response) => {
    
    try {
-    const {  problemId, code, language, contestId } = req.body;
+    // contestId is not accepted here: contest submissions go through /contest/submit-contest-problem, which checks membership.
+    const {  problemId, code, language } = req.body;
     if(!problemId || !code || !language) {
         return res.status(400).json({ message: "Missing required fields" });
     }
-     
+
      const userId = (req as any).user.id;
-      rateLimiter(userId, "submission", 5, 60).then(async (allowed) => {
-        if (!allowed) {
-            return res.status(429).json({ message: "Rate limit exceeded. Please try again later." });
-        }
-      })
-    const submissionPromise = await new  Promise(async (resolve)=>{       
+     if (!(await rateLimiter(userId, "submission", 5, 60))) {
+        return res.status(429).json({ message: "Rate limit exceeded. Please try again later." });
+     }
         const submission = await prisma.submissions.create({
             data: {
                 problemId,
-                contestId,
                 code,
                 language,
                 status: "PENDING",
@@ -112,25 +86,19 @@ router.post("/submission", async (req: Request, res: Response) => {
             },
         })  
 
-        console.log("submission", submission)
        const message = {
         submissionId: submission.id,
         problemId: submission.problemId,
-        contestId: submission.contestId,
         code: submission.code,
         language: submission.language,
        }
-         await publishToQueue("submission_queue", JSON.stringify(message));         
-         resolve(submission.id)
-
-    })
-
-    if(submissionPromise){
-        res.status(201).json({ message: "Submission created successfully", submissionId: submissionPromise });
-    }}
+         await publishToQueue("submission_queue", JSON.stringify(message));
+        res.status(201).json({ message: "Submission created successfully", submissionId: submission.id });
+    }
 
     catch (error) {
         console.log("Error creating submission:", error);
+        res.status(500).json({ message: "Error creating submission" });
     }
             
 })

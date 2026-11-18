@@ -8,8 +8,9 @@
     "@types/node": "^26.1.0"
   },
   "scripts": {
-    "build": "bun build ./index.ts --outdir dist --target=bun",
-    "start": "bun run dist/index.js"
+    "build": "bun build ./index.ts ./worker.ts --outdir dist --target=bun --external cpu-features",
+    "start": "bun run dist/index.js",
+    "worker": "bun run dist/worker.js"
   },
   "peerDependencies": {
     "typescript": "^5"

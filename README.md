@@ -84,7 +84,7 @@ flowchart TB
 1. **Frontend** (Next.js on Vercel) calls the backend over HTTPS.
 2. **Backend** (Express on Render) handles `/auth`, `/problems`, `/leaderboard`, `/streaks` directly against Postgres via `@repo/db` (Prisma).
 3. **Code submission** (`/api`) doesn't execute code inline — it publishes a job to RabbitMQ via `@repo/queue` and returns immediately.
-4. A separate **worker process**, running on a VPS with Docker access, consumes the queue and uses `@repo/code-runner` (`dockerode`) to spin up an isolated container per submission, run the user's code against test cases, and write the result back to Postgres.
+4. A separate **worker process** (`apps/backend/worker.ts`, started with `bun run worker` in `apps/backend`), running on a VPS with Docker access, consumes the queue and uses `@repo/code-runner` (`dockerode`) to spin up an isolated container per submission. It runs the code once per test case with the input on stdin, compares stdout to the expected output outside the container, and writes the verdict back to Postgres. `WORKER_CONCURRENCY` (default 2) caps containers running at once. Contest score changes reach the API's sockets over Redis pub/sub.
 5. The frontend polls or re-fetches submission status once the worker finishes.
 
 This split exists because serverless/PaaS platforms (Vercel, Render, Railway) don't expose a Docker socket to your app — only a real VM can safely run arbitrary untrusted code in containers.

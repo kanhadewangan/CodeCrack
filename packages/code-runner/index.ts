@@ -1,9 +1,13 @@
+import { randomUUID } from "node:crypto";
 import Docker from "dockerode";
 import { prisma } from "@repo/db";
 import { consumeFromQueue } from "@repo/queue";
+import { buildScript, judge, runnerFor, PER_TEST_SECONDS, type Verdict } from "./judge.ts";
 
 const docker = new Docker();
 const queueName = "submission_queue";
+// Containers judged at once; each is capped at 256MB and half a CPU.
+const concurrency = Number(process.env.WORKER_CONCURRENCY ?? 2);
 
 type TestCase = {
   input?: string;
@@ -18,18 +22,12 @@ type SubmissionMessage = {
   language?: string;
 };
 
-type SubmissionResult = {
-  success: boolean;
-  output: string;
-  error?: string;
-};
-
 type JudgedSubmission = {
   submissionId: string;
   userId: string;
   problemId: string;
   contestId?: string | null;
-  status: "ACCEPTED" | "WRONG_ANSWER";
+  status: Verdict;
   difficulty?: "EASY" | "MEDIUM" | "HARD";
   isFirstAcceptedInContest: boolean;
 };
@@ -48,22 +46,26 @@ async function startWorker(onJudged?: (submission: JudgedSubmission) => Promise<
 
     const { submissionId, problemId, code, language = "javascript" } = parsedMessage;
 
+    // A redelivered message must not be judged (and counted in stats) twice.
+    const existing = await prisma.submissions.findUnique({
+      where: { id: submissionId },
+      select: { status: true },
+    });
+    if (existing?.status !== "PENDING") return;
+
+    let verdict: Verdict;
     try {
       const testCases = await getTestCasesForProblem(problemId);
-      const result = await runSubmission(code, language, testCases);
-      const judgedSubmission = await updateSubmissionStatus(submissionId, result);
-      if (onJudged) await onJudged(judgedSubmission);
+      verdict = await runSubmission(code, language, testCases);
     } catch (error) {
       const err = error instanceof Error ? error.message : String(error);
       console.error(`Submission ${submissionId} failed: ${err}`);
-      const judgedSubmission = await updateSubmissionStatus(submissionId, {
-        success: false,
-        output: "",
-        error: err,
-      });
-      if (onJudged) await onJudged(judgedSubmission);
+      verdict = "RUNTIME_ERROR";
     }
-  });
+
+    const judgedSubmission = await updateSubmissionStatus(submissionId, verdict);
+    if (onJudged) await onJudged(judgedSubmission);
+  }, concurrency);
 }
 
 const getTestCasesForProblem = async (problemId: string): Promise<TestCase[]> => {
@@ -79,16 +81,11 @@ const getTestCasesForProblem = async (problemId: string): Promise<TestCase[]> =>
   return problem.testCases as TestCase[];
 };
 
-const updateSubmissionStatus = async (submissionId: string, result: SubmissionResult): Promise<JudgedSubmission> => {
-  const status = result.success ? "ACCEPTED" : "WRONG_ANSWER";
-  // console.log("Updating submission status:", submissionId, status);
-  
+const updateSubmissionStatus = async (submissionId: string, status: Verdict): Promise<JudgedSubmission> => {
   // 1. Update the submission status
   const updatedSubmission = await prisma.submissions.update({
     where: { id: submissionId },
-    data: {
-      status: status as any,
-    },
+    data: { status },
     include: {
       problems: true
     }
@@ -196,18 +193,23 @@ const updateSubmissionStatus = async (submissionId: string, result: SubmissionRe
   };
 };
 
-async function runSubmission(code: string, language: string, testCases: TestCase[]): Promise<SubmissionResult> {
-  const image = imageForLanguage(language);
+async function runSubmission(code: string, language: string, testCases: TestCase[]): Promise<Verdict> {
+  const runner = runnerFor(language);
+  await ensureImageAvailable(runner.image);
 
-  await ensureImageAvailable(image);
-
-  const encodedCode = Buffer.from(code, "utf8").toString("base64");
-  const encodedTestCases = Buffer.from(JSON.stringify(testCases), "utf8").toString("base64");
+  const b64 = (text: string) => Buffer.from(text, "utf8").toString("base64");
+  const delimiter = randomUUID();
 
   const container = await docker.createContainer({
-    Image: image,
-    Cmd: runCommandFor(language),
-    Env: [`SUBMISSION_CODE_B64=${encodedCode}`, `TEST_CASES_B64=${encodedTestCases}`],
+    Image: runner.image,
+    Cmd: ["sh", "-c", buildScript(runner.cmd)],
+    // Inputs only: expected outputs stay in this process.
+    Env: [
+      `CODE_B64=${b64(code)}`,
+      `N=${testCases.length}`,
+      `D=${delimiter}`,
+      ...testCases.map((testCase, i) => `IN_${i}=${b64(testCase.input ?? "")}`),
+    ],
     Tty: true,
     HostConfig: {
       Memory: 256 * 1024 * 1024,
@@ -225,32 +227,31 @@ async function runSubmission(code: string, language: string, testCases: TestCase
     AttachStderr: true,
   });
 
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     await container.start();
 
-    const timeoutMs = 5000;
-    const waitResult = (await Promise.race([
+    // Backstop for a solution that ignores the per-test SIGTERM.
+    const timeoutMs = testCases.length * PER_TEST_SECONDS * 1000 + 5000;
+    await Promise.race([
       container.wait(),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("TIME_LIMIT_EXCEEDED")), timeoutMs),
-      ),
-    ])) as { StatusCode?: number };
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("TIME_LIMIT_EXCEEDED")), timeoutMs);
+      }),
+    ]);
 
     const logs = await container.logs({ stdout: true, stderr: true });
-    console.log("Container logs:", logs.toString("utf8"));
-    return parseOutput(logs, waitResult.StatusCode ?? 1);
+    return judge(logs.toString("utf8"), delimiter, testCases.map((testCase) => testCase.output ?? ""));
   } catch (error) {
     await container.kill().catch(() => {
       // Container may already have exited.
     });
 
     const err = error instanceof Error ? error.message : String(error);
-    return {
-      success: false,
-      output: "",
-      error: err,
-    };
+    if (err !== "TIME_LIMIT_EXCEEDED") console.error("Container run failed:", err);
+    return err === "TIME_LIMIT_EXCEEDED" ? "TIME_LIMIT_EXCEEDED" : "RUNTIME_ERROR";
   } finally {
+    clearTimeout(timer);
     await container.remove({ force: true }).catch(() => {
       // Best-effort cleanup.
     });
@@ -284,56 +285,5 @@ async function ensureImageAvailable(image: string): Promise<void> {
     })
   }
   }
-
- 
-
-const LANGUAGE_IMAGES: Record<string, string> = {
-  javascript: "node:20-alpine",
-  js: "node:20-alpine",
-  python: "python:3.11-alpine",
-  py: "python:3.11-alpine",
-};
-
-function imageForLanguage(language: string): string {
-  const image = LANGUAGE_IMAGES[language.toLowerCase()];
-  if (!image) throw new Error(`Unsupported language: ${language}`);
-  return image;
-}
-
-function runCommandFor(language: string): string[] {
-  switch (language.toLowerCase()) {
-    case "javascript":
-    case "js":
-      return [
-        "sh",
-        "-lc",
-        "printf '%s' \"$SUBMISSION_CODE_B64\" | base64 -d > /tmp/solution.js && node /tmp/solution.js",
-      ];
-      case "python":
-      case "py":
-    return [
-      "sh", "-c",
-      "TMPFILE=$(mktemp /tmp/solution_XXXXXX) && " +
-  "printf '%s' \"$SUBMISSION_CODE_B64\" | base64 -d > \"$TMPFILE\" && " +
-    "(command -v python3 >/dev/null 2>&1 && python3 \"$TMPFILE\" || python \"$TMPFILE\")"
-    ];
-    default:
-      throw new Error(`Unsupported language: ${language}`);
-  }
-}
-
-function parseOutput(logs: Buffer | string, statusCode: number): SubmissionResult {
-  const output = Buffer.isBuffer(logs) ? logs.toString("utf8") : logs;
-
-  if (statusCode === 0) {
-    return { success: true, output };
-  }
-
-  return {
-    success: false,
-    output,
-    error: output.trim() || `Process exited with code ${statusCode}`,
-  };
-}
 
 export { startWorker };

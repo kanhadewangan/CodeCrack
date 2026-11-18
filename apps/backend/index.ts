@@ -9,7 +9,7 @@ import streaksRoute from "./code-submisson/streaks.ts";
 import cors from "cors";
 import { type Request, type Response } from "express";
 import contestRoute from "./contest/index.ts";
-import { initializeContestSockets } from "./contest/liveContest.ts";
+import { initializeContestSockets, resumeRunningContests } from "./contest/liveContest.ts";
 import client from "prom-client";
 
 // Prometheus metrics setup
@@ -95,6 +95,7 @@ app.get("/leaderboard", async (_req: Request, res: Response) => {
         });
     
 initializeContestSockets(server);
+resumeRunningContests().catch((error) => console.error("Failed to resume running contests", error));
 
 server.listen(3001, () => {
   console.log("Server is running on port 3001");

@@ -2,6 +2,7 @@ import express, { type Request, type Response } from "express";
 import jwt from "jsonwebtoken";
 import { prisma } from "@repo/db";
 import { publishToQueue } from "@repo/queue";
+import { rateLimiter } from "@reoo/ratelimit";
 import { authMiddleware } from "../auth/middleware";
 import { getLeaderboardSnapshot, startContest } from "./liveContest";
 
@@ -356,6 +357,10 @@ route.post("/submit-contest-problem", authMiddleware, async (req: RequestWithUse
   }
 
   try {
+    if (!(await rateLimiter(userId, "submission", 5, 60))) {
+      return res.status(429).json({ code: "RATE_LIMITED", message: "Rate limit exceeded. Please try again later." });
+    }
+
     const [contest, participant, contestProblem] = await Promise.all([
       prisma.contest.findUnique({ where: { id: contestId as string } }),
       prisma.contestParticipants.findFirst({ where: { contestId: contestId as string, userId: req.user?.id } }),
@@ -389,7 +394,7 @@ route.post("/submit-contest-problem", authMiddleware, async (req: RequestWithUse
       },
     });
 
-    await publishToQueue("submission_queue", JSON.stringify(submission));
+    await publishToQueue("submission_queue", JSON.stringify({ submissionId: submission.id, ...submission }));
     res.status(201).json({ message: "Contest submission created successfully", submissionId: submission.id });
   } catch (err) {
     console.error(err);

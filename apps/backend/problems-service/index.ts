@@ -1,5 +1,6 @@
 import express from "express";
 import { prisma } from "@repo/db";
+import { authMiddleware } from "../auth/middleware.ts";
 
 const router = express.Router();
 import { type Request, type Response } from "express";
@@ -20,11 +21,9 @@ router.get("/problems", async (req: Request, res: Response) => {
             };
         }
 
+        // Test cases are judge-only: never returned to clients.
         const problems = await prisma.problems.findMany({
             where: whereClause,
-            include: {
-                testCases: true
-            }
         });
         res.status(200).json(problems);
     }
@@ -42,9 +41,6 @@ router.get("/problems/:id", async (req: Request, res: Response) => {
             where: {
                 id: id as string
             },
-            include: {
-                testCases: true
-            }
         });
         res.status(200).json(problem);
     } catch (error) {
@@ -52,7 +48,7 @@ router.get("/problems/:id", async (req: Request, res: Response) => {
     }
 });
 
-router.post("/problems", async (req: Request, res: Response) => {
+router.post("/problems", authMiddleware, async (req: Request, res: Response) => {
     try {
         const { title, description, difficulty, testCases, tags, hints } = req.body;
         const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Date.now().toString().slice(-4);
@@ -91,7 +87,7 @@ router.get("/hints/:problemId", async (req: Request, res: Response) => {
     }
 });
 
-router.post("/hints", async (req: Request, res: Response) => {
+router.post("/hints", authMiddleware, async (req: Request, res: Response) => {
     try {
         const { problemId, hint } = req.body;
         const newHint = await prisma.hints.create({

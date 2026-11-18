@@ -7,6 +7,7 @@ import { prisma } from "@repo/db";
 const START_WINDOW_MINUTES = Number(process.env.CONTEST_START_WINDOW_MINUTES ?? 15);
 const DEFAULT_TOP_N = Number(process.env.CONTEST_LEADERBOARD_TOP_N ?? 50);
 const REDIS_URL = process.env.REDIS_URL;
+const LEADERBOARD_CHANNEL = "contest:leaderboard:changed";
 
 type AuthedSocket = Socket & {
   user?: {
@@ -44,6 +45,14 @@ export function initializeContestSockets(server: HttpServer) {
   });
 
   const contestNamespace = io.of("/contests");
+
+  // Redis needs a dedicated connection for subscribing.
+  const subscriber = redis.duplicate();
+  subscriber.on("error", (error) => console.error("Contest Redis subscriber error:", error.message));
+  subscriber.on("message", (_channel, contestId) => queueLeaderboardBroadcast(contestId));
+  subscriber.subscribe(LEADERBOARD_CHANNEL).catch((error) => {
+    console.error("Failed to subscribe to leaderboard updates:", error.message);
+  });
 
   contestNamespace.use((socket: AuthedSocket, next) => {
     const token = socket.handshake.auth?.token;
@@ -281,13 +290,11 @@ export async function recordContestScore(params: {
 
   await withRedis(async () => {
     await redis.zadd(scoreKey(params.contestId), row.score, params.userId);
-    await redis.hset(userKey(params.contestId, params.userId), {
-      username: params.userId,
-      penalty: String(row.penalty),
-    });
+    // username was set when the contest started; only the penalty changes here.
+    await redis.hset(userKey(params.contestId, params.userId), { penalty: String(row.penalty) });
+    // This runs in the worker process; the API process holds the sockets and broadcasts on this signal.
+    await redis.publish(LEADERBOARD_CHANNEL, params.contestId);
   });
-
-  queueLeaderboardBroadcast(params.contestId);
 }
 
 export async function getLeaderboardSnapshot(contestId: string, topN = DEFAULT_TOP_N): Promise<LeaderboardRow[]> {
@@ -342,6 +349,17 @@ export function scheduleContestEnd(contestId: string, actualEndTime: Date) {
   }, delay);
 
   endTimers.set(contestId, timer);
+}
+
+// End timers live in memory, so a restart loses them: call once on boot.
+export async function resumeRunningContests() {
+  const contests = await prisma.contest.findMany({
+    where: { status: "RUNNING" },
+    select: { id: true, endTime: true, actualEndTime: true },
+  });
+  for (const contest of contests) {
+    scheduleContestEnd(contest.id, contest.actualEndTime ?? contest.endTime);
+  }
 }
 
 export async function endContest(contestId: string) {
